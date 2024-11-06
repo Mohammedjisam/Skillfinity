@@ -88,9 +88,10 @@ export default function AddCourse() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await a.post('/api/courses/add', courseData);
+      const response = await axiosInstance.post('/tutor/course/addcourse', courseData);
       toast.success('Course added successfully');
       navigate('/tutor/courses');
+      console.log(response)
     } catch (error) {
       console.error('Error adding course:', error);
       toast.error('Failed to add course');
