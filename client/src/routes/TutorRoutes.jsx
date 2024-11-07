@@ -31,7 +31,7 @@ function TutorRoutes() {
         <Route path='dashboard' element={<Dashboard/>}/>
         <Route path='profile' element={<ProtectedTutorRoutes><TutorProfile/></ProtectedTutorRoutes>}/>
         <Route path='addcourse' element={<ProtectedTutorRoutes><AddCourse/></ProtectedTutorRoutes>}/>
-        <Route path='addlesson'element={<ProtectedTutorRoutes><AddLesson/></ProtectedTutorRoutes>}/>
+        <Route path='addlesson/:id'element={<ProtectedTutorRoutes><AddLesson/></ProtectedTutorRoutes>}/>
         <Route path='mycourse'element={<ProtectedTutorRoutes><MyCourses/></ProtectedTutorRoutes>}/>
         <Route path='editcourse'element={<ProtectedTutorRoutes><EditCourse/></ProtectedTutorRoutes>}/>
       </Routes>

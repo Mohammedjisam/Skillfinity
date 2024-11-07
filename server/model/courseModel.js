@@ -1,12 +1,21 @@
 const mongoose = require('mongoose');
 
 const CourseSchema = new mongoose.Schema({
-category: {
+  coursetitle: {
+    type: String,
+    required: true,
+  },
+  category: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'categories',
     required: true,
   },
-  coursetitle: {
+  tutor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'user',
+    required: true,
+  },
+  difficulty: {
     type: String,
     required: true,
   },
@@ -21,7 +30,15 @@ category: {
   thumbnail: {
     type: String,
     required: true,
-  }
+  },
+  lessons: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'lessons',
+  }],
+  isVisible: {
+    type: Boolean,
+    default: true,
+  },
 },{
   timestamps: true,
  });

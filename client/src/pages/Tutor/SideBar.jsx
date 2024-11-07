@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { 
   LayoutDashboard, 
   UserCircle, 
@@ -13,22 +13,31 @@ import { useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { logoutTutor } from '@/redux/slice/TutorSlice'
 import { toast } from 'sonner'
+import ConfirmationModal from '../../components/common/ConfirmationModal'
 
 const SideBar = ({ isOpen, onClose, activeItem = 'Profile' }) => {
   const tutorData = useSelector((store) => store.tutor.tutorDatas)
   const navigate = useNavigate()
   const dispatch = useDispatch()
   
+  // State for controlling the logout confirmation modal
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false)
+
   const handleNavigation = (path) => {
     navigate(path)
     onClose?.()
   }
 
-  const handleLogout = () => {
+  const handleLogoutClick = () => {
+    setIsLogoutModalOpen(true) // Open the confirmation modal when logout is clicked
+  }
+
+  const confirmLogout = () => {
     dispatch(logoutTutor())
     navigate("/")
     onClose?.()
     toast.success('Logged out successfully!')
+    setIsLogoutModalOpen(false) // Close the modal after logout
   }
 
   const menuItems = [
@@ -100,7 +109,7 @@ const SideBar = ({ isOpen, onClose, activeItem = 'Profile' }) => {
           </div>
           {/* Logout Button */}
           <button
-            onClick={handleLogout}
+            onClick={handleLogoutClick} // Opens confirmation modal
             className="flex items-center w-full p-3 mt-4 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors"
           >
             <LogOut className="w-5 h-5 mr-3" />
@@ -116,6 +125,15 @@ const SideBar = ({ isOpen, onClose, activeItem = 'Profile' }) => {
           </button>
         </nav>
       </div>
+
+      {/* Confirmation Modal for Logout */}
+      <ConfirmationModal
+        isOpen={isLogoutModalOpen}
+        onClose={() => setIsLogoutModalOpen(false)}
+        onConfirm={confirmLogout}
+        title="Logout Confirmation"
+        message="Are you sure you want to log out?"
+      />
     </>
   )
 }

@@ -1,214 +1,311 @@
-import React, { useState } from 'react';
-import { Upload, Play, Plus, Menu, X } from 'lucide-react';
-import SideBar from '../../../pages/Tutor/SideBar';
+import { useState, useEffect } from 'react'
+import { useSelector } from 'react-redux'
+import { useNavigate, useParams } from 'react-router-dom'
+import { Menu, Upload, FileText } from 'lucide-react'
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Card } from "@/components/ui/card"
+import SideBar from '../../../pages/Tutor/SideBar'
+import axiosInstance from '../../../AxiosConfig'
+import { toast } from 'sonner';
 
-const AddLesson = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [videoFile, setVideoFile] = useState(null);
-  const [pdfFile, setPdfFile] = useState(null);
-  const [videoThumbnail, setVideoThumbnail] = useState(null);
-  const [formData, setFormData] = useState({
+export default function AddLesson() {
+  const { id: courseId } = useParams()
+  const navigate = useNavigate()
+  const tutor = useSelector((state) => state.tutor.tutorDatas)
+
+  const [lessonData, setLessonData] = useState({
     title: '',
-    duration: ''
-  });
+    description: '',
+    videoUrl: '',
+    pdfUrl: '',
+    duration: '',
+    tutor: tutor._id,
+    course: courseId,
+  })
+  const [videoFile, setVideoFile] = useState(null)
+  const [pdfFile, setPdfFile] = useState(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
+  const [videoPreview, setVideoPreview] = useState(null)
+  const [addedLessons, setAddedLessons] = useState([])
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+    const { name, value } = e.target
+    setLessonData((prevData) => ({
+      ...prevData,
+      [name]: value,
+    }))
+  }
 
-  const handleVideoUpload = (e) => {
-    const file = e.target.files[0];
+  const handleVideoChange = (e) => {
+    const file = e.target.files[0]
+    setVideoFile(file)
     if (file) {
-      setVideoFile(file);
-      // Create video thumbnail
-      const video = document.createElement('video');
-      video.preload = 'metadata';
-      video.onloadedmetadata = function() {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        canvas.getContext('2d').drawImage(video, 0, 0);
-        setVideoThumbnail(canvas.toDataURL('image/jpeg'));
-      };
-      video.src = URL.createObjectURL(file);
+      const videoUrl = URL.createObjectURL(file)
+      setVideoPreview(videoUrl)
+    } else {
+      setVideoPreview(null)
     }
-  };
+  }
 
-  const handlePdfUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setPdfFile(file);
+  const handlePdfChange = (e) => {
+    setPdfFile(e.target.files[0])
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    setIsUploading(true)
+
+    try {
+      let videoUrl = ''
+      let pdfUrl = ''
+
+      if (videoFile) {
+        const videoFormData = new FormData()
+        videoFormData.append('file', videoFile)
+        videoFormData.append('upload_preset', 'skillfinity_media')
+        videoFormData.append('cloud_name', 'dwxnxuuht')
+
+        const videoResponse = await fetch(
+          'https://api.cloudinary.com/v1_1/dwxnxuuht/video/upload',
+          {
+            method: 'POST',
+            body: videoFormData,
+          }
+        )
+
+        const videoData = await videoResponse.json()
+        videoUrl = videoData.secure_url
+      }
+
+      if (pdfFile) {
+        const pdfFormData = new FormData()
+        pdfFormData.append('file', pdfFile)
+        pdfFormData.append('upload_preset', 'skillfinity_media')
+        pdfFormData.append('cloud_name', 'dwxnxuuht')
+
+        const pdfResponse = await fetch(
+          'https://api.cloudinary.com/v1_1/dwxnxuuht/raw/upload',
+          {
+            method: 'POST',
+            body: pdfFormData,
+          }
+        )
+
+        const pdfData = await pdfResponse.json()
+        pdfUrl = pdfData.secure_url
+      }
+
+      const lessonDataToSubmit = {
+        ...lessonData,
+        videoUrl: videoUrl,
+        pdfUrl: pdfUrl,
+      }
+  
+      const response = await axiosInstance.post(`/tutor/course/addlesson/${courseId}`, lessonDataToSubmit)
+      setAddedLessons([...addedLessons, response.data.lesson])
+      toast.success('Lesson added successfully')
+      
+      // Reset form fields
+      setLessonData({
+        title: '',
+        description: '',
+        videoUrl: '',
+        pdfUrl: '',
+        duration: '',
+        tutor: tutor._id,
+        course: courseId,
+      })
+      setVideoFile(null)
+      setPdfFile(null)
+      setVideoPreview(null)
+    } catch (error) {
+      console.error('Error adding lesson:', error)
+      toast.error('Failed to add lesson')
+    } finally {
+      setIsUploading(false)
     }
-  };
+  }
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    // Handle form submission with formData, videoFile, and pdfFile
-    console.log('Submitting:', { formData, videoFile, pdfFile });
-  };
+  const handleFinishCourse = () => {
+    navigate('/tutor/courses')
+  }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      <SideBar activeItem="Courses" isOpen={isOpen} onClose={() => setIsOpen(false)} />
-      
-      <div className="flex-1 p-14 lg:ml">
-        <button
-          className="lg:hidden mb-4 p-2 bg-gray-200 rounded-md"
-          onClick={() => setIsOpen(!isOpen)}
-        >
-          {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+    <div className="min-h-screen bg-gray-50 flex">
+      <SideBar 
+        isOpen={isSidebarOpen} 
+        onClose={() => setIsSidebarOpen(false)} 
+        activeItem="Courses"
+      />
+      <div className="flex-1">
+        <header className="bg-white shadow-sm">
+          <div className="flex items-center justify-between px-6 py-4">
+            <h1 className="text-2xl font-bold">Add New Lesson</h1>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSidebarOpen(true)}
+              className="lg:hidden"
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
+          </div>
+        </header>
 
-        {/* Centered container */}
-        <div className="flex justify-center">
-          <div className="w-full max-w-3xl mx-auto">
-            <div className="bg-white rounded-lg shadow">
-              <div className="p-6">
-                <h2 className="text-2xl font-semibold mb-6 text-center">Add Course Lessons</h2>
+        <main className="p-6">
+          <Card className="max-w-[1200px] mx-auto bg-white p-8 rounded-lg shadow-sm border-dashed border-gray-300">
+            <form onSubmit={handleSubmit}>
+              <div className="grid md:grid-cols-2 gap-8">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Lesson Title
+                    </label>
+                    <Input
+                      name="title"
+                      value={lessonData.title}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full bg-rose-50 border-none"
+                    />
+                  </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  {/* PDF Notes Upload */}
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-700">Add Pdf Notes</span>
-                    <label className="cursor-pointer">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Lesson Description
+                    </label>
+                    <Textarea
+                      name="description"
+                      value={lessonData.description}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full min-h-[150px] bg-rose-50 border-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Lesson Duration (in minutes)
+                    </label>
+                    <Input
+                      name="duration"
+                      value={lessonData.duration}
+                      onChange={handleInputChange}
+                      required
+                      className="w-full bg-rose-50 border-none"
+                    />
+                  </div>
+                </div>
+
+                {/* Right Column */}
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Lesson Video
+                    </label>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="aspect-video w-full rounded-lg border-2 border-dashed border-gray-200 bg-white overflow-hidden">
+                        {videoPreview ? (
+                          <video src={videoPreview} controls className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="h-full flex flex-col items-center justify-center">
+                            <Upload className="h-12 w-12 text-gray-400 mb-3" />
+                            <p className="text-sm text-gray-500">Upload lesson video</p>
+                          </div>
+                        )}
+                      </div>
+                      <input
+                        type="file"
+                        accept="video/*"
+                        onChange={handleVideoChange}
+                        className="hidden"
+                        id="video-upload"
+                      />
+                      <Button
+                        type="button"
+                        onClick={() => document.getElementById('video-upload').click()}
+                        className="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white"
+                      >
+                        {videoFile ? 'Change Video' : 'Add Video'}
+                      </Button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Lesson PDF
+                    </label>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="aspect-video w-full rounded-lg border-2 border-dashed border-gray-200 bg-white overflow-hidden">
+                        {pdfFile ? (
+                          <div className="h-full flex flex-col items-center justify-center">
+                            <FileText className="h-12 w-12 text-gray-400 mb-3" />
+                            <p className="text-sm text-gray-500">{pdfFile.name}</p>
+                          </div>
+                        ) : (
+                          <div className="h-full flex flex-col items-center justify-center">
+                            <FileText className="h-12 w-12 text-gray-400 mb-3" />
+                            <p className="text-sm text-gray-500">Upload lesson PDF</p>
+                          </div>
+                        )}
+                      </div>
                       <input
                         type="file"
                         accept=".pdf"
-                        onChange={handlePdfUpload}
+                        onChange={handlePdfChange}
                         className="hidden"
+                        id="pdf-upload"
                       />
-                      <div className="w-8 h-8 bg-red-500 rounded flex items-center justify-center text-white hover:bg-red-600 transition-colors">
-                        <Plus className="w-5 h-5" />
-                      </div>
-                    </label>
-                    {pdfFile && (
-                      <span className="text-sm text-gray-600">{pdfFile.name}</span>
-                    )}
-                  </div>
-
-                  {/* Main Form Area */}
-                  <div className="bg-gray-100 p-6 rounded-lg">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {/* Left Column */}
-                      <div className="space-y-4">
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Lesson Title
-                          </label>
-                          <input
-                            type="text"
-                            name="title"
-                            value={formData.title}
-                            onChange={handleInputChange}
-                            className="w-full p-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1">
-                            Lesson Duration
-                          </label>
-                          <input
-                            type="text"
-                            name="duration"
-                            value={formData.duration}
-                            onChange={handleInputChange}
-                            placeholder="e.g., 30 minutes"
-                            className="w-full p-2 border rounded-md focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
-                            required
-                          />
-                        </div>
-
-                        <div>
-                          <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-1">
-                            <Play className="w-4 h-4" />
-                            Upload Video
-                          </label>
-                          <input
-                            type="file"
-                            accept="video/*"
-                            onChange={handleVideoUpload}
-                            className="hidden"
-                            id="video-upload"
-                          />
-                          <label
-                            htmlFor="video-upload"
-                            className="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-md cursor-pointer hover:bg-gray-300 transition-colors"
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Choose Video
-                          </label>
-                          {videoFile && (
-                            <p className="mt-1 text-sm text-gray-600">{videoFile.name}</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Right Column - Video Thumbnail */}
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Video Thumbnail
-                        </label>
-                        <div className="aspect-video bg-gray-200 rounded-lg overflow-hidden">
-                          {videoThumbnail ? (
-                            <img
-                              src={videoThumbnail}
-                              alt="Video thumbnail"
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <svg
-                                className="w-12 h-12 text-gray-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                                />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Add Button */}
-                    <div className="flex justify-end mt-4">
-                      <button
+                      <Button
                         type="button"
-                        className="flex items-center px-4 py-2 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors"
+                        onClick={() => document.getElementById('pdf-upload').click()}
+                        className="mt-4 w-full bg-teal-500 hover:bg-teal-600 text-white"
                       >
-                        <Plus className="w-4 h-4 mr-1" />
-                        Add
-                      </button>
+                        {pdfFile ? 'Change PDF' : 'Add PDF'}
+                      </Button>
                     </div>
                   </div>
-
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    className="w-full py-3 bg-teal-500 text-white rounded-md hover:bg-teal-600 transition-colors"
-                  >
-                    Submit
-                  </button>
-                </form>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
+
+              <div className="mt-8">
+                <Button
+                  type="submit"
+                  disabled={isUploading}
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
+                >
+                  {isUploading ? 'Uploading...' : 'Add Lesson'}
+                </Button>
+              </div>
+            </form>
+          </Card>
+
+          {addedLessons.length > 0 && (
+            <Card className="max-w-[1200px] mx-auto mt-8 bg-white p-8 rounded-lg shadow-sm">
+              <h2 className="text-xl font-semibold mb-4">Added Lessons</h2>
+              <ul className="space-y-2">
+                {addedLessons.map((lesson, index) => (
+                  <li key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                    <span>{index+1}</span>
+                    <span>{lesson.lessontitle}</span>
+                    <span>{lesson.duration}</span>
+                  </li>
+                ))}
+              </ul>
+              <Button
+                onClick={handleFinishCourse}
+                className="mt-6 w-full bg-blue-500 hover:bg-blue-600 text-white"
+              >
+                Submit
+              </Button>
+            </Card>
+          )}
+        </main>
       </div>
     </div>
-  );
-};
-
-export default AddLesson;
+  )
+}
