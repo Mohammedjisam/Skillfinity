@@ -12,9 +12,11 @@ import AdminForgot from '@/pages/Admin/AdminForgot'
 import AdminReset from '@/pages/Admin/AdminReset'
 import ProtectedAdminLogin from '@/private/admin/ProtectedAdminLogin'
 import ProtectedAdminRoutes from '@/private/admin/ProtectedAdminRoutes'
-import CourseManagement from '@/pages/Admin/CourseMangement'
 import AddCategory from '@/components/Courses/Admin/AddCategory'
 import CategoryManagement from '@/pages/Admin/CategoryManagement'
+import CourseManagement from '@/components/Courses/Admin/CourseManagement'
+import ViewCourseDetails from '@/components/Courses/Admin/ViewCourseDetails'
+import ViewLessons from '@/components/Courses/Admin/ViewLessons'
 
 function AdminRoutes() {
   return (
@@ -47,6 +49,8 @@ function AdminRoutes() {
         <Route path='reset-password/:token' element={<AdminReset/>}/>
         <Route path='addcategory' element={<AddCategory/>}/>
         <Route path='category' element={<CategoryManagement/>}/>
+        <Route path='courses/:id' element={<ViewCourseDetails/>}/>
+        <Route path='courses/:courseId/lessons' element={<ViewLessons/>}/>
 
       </Routes>
       <Footer />

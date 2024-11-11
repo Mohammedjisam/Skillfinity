@@ -23,6 +23,7 @@ export default function AddCourse() {
     thumbnail: null,
     tutor: tutor._id,
     difficulty: '',
+    courseStructure: ['', '', '', '', '', '']
   })
   const [thumbnailPreview, setThumbnailPreview] = useState(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
@@ -57,6 +58,13 @@ export default function AddCourse() {
     setCourseData(prevData => ({
       ...prevData,
       [name]: value
+    }))
+  }
+
+  const handleStructureChange = (index, value) => {
+    setCourseData(prevData => ({
+      ...prevData,
+      courseStructure: prevData.courseStructure.map((item, i) => i === index ? value : item)
     }))
   }
 
@@ -237,7 +245,7 @@ export default function AddCourse() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Course Thumbnail Image
                   </label>
-                  <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="bg-rose-50 rounded-lg p-4">
                     <div className="aspect-video w-full rounded-lg border-2 border-dashed border-gray-200 bg-white overflow-hidden">
                       {thumbnailPreview ? (
                         <img
@@ -267,6 +275,26 @@ export default function AddCourse() {
                       Add Image
                     </Button>
                   </div>
+
+                  {/* New Course Structure Section */}
+                  <div className="mt-8">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Course Structure
+                    </label>
+                    <div className="bg-rose-50 rounded-lg p-4">
+                      <div className="space-y-2">
+                        {courseData.courseStructure.map((item, index) => (
+                          <Input
+                            key={index}
+                            value={item}
+                            onChange={(e) => handleStructureChange(index, e.target.value)}
+                            placeholder={`Section ${index + 1}`}
+                            className="w-full bg-white border-none"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -276,7 +304,7 @@ export default function AddCourse() {
                   disabled={isUploading}
                   className="w-full bg-teal-500 hover:bg-teal-600 text-white py-6 text-lg font-medium"
                 >
-                  {isUploading ? 'Creating Course...' : 'Add Lesson'}
+                  {isUploading ? 'Creating Course...' : 'Add Lessons'}
                 </Button>
               </div>
             </form>

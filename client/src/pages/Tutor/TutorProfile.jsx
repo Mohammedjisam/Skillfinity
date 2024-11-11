@@ -101,8 +101,6 @@ export default function TutorProfile() {
     { label: 'Name', value: tutorData.name },
     { label: 'Phone', value: tutorData.phone },
     { label: 'Email', value: tutorData.email },
-    { label: 'Categories', value: tutorData.categories },
-    { label: 'Courses Taken', value: tutorData.coursesTaken },
   ];
 
   return (

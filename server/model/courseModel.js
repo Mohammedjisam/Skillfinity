@@ -35,6 +35,10 @@ const CourseSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'lessons',
   }],
+  courseStructure:[{
+    type:String,
+    required:true,
+  }],
   isVisible: {
     type: Boolean,
     default: true,

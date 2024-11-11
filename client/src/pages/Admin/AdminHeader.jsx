@@ -34,7 +34,8 @@ const Header = () => {
             {adminData ? (
               <nav className="hidden md:flex space-x-6">
                 <Link to="/admin/dashboard" className="text-gray-700 hover:text-gray-900">Home</Link>
-                <Link to="/admin/dashboard" className="text-gray-700 hover:text-gray-900">Courses</Link>
+                <Link to="/admin/category" className="text-gray-700 hover:text-gray-900">Categories</Link>
+                <Link to="/admin/courses" className="text-gray-700 hover:text-gray-900">Courses</Link>
                 <Link to="/admin/students" className="text-gray-700 hover:text-gray-900">Students</Link>
                 <Link to="/admin/tutors" className="text-gray-700 hover:text-gray-900">Tutors</Link>
               </nav>

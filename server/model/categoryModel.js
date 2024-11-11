@@ -1,6 +1,6 @@
 const mongoose = require('mongoose')
 
-const categorySchema = new mongoose.Schema(
+const CategorySchema = new mongoose.Schema(
    {
     title: {
         type: String,
@@ -10,12 +10,24 @@ const categorySchema = new mongoose.Schema(
         type: String,
         required: true,
       },
+      courses: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'courses',
+      }],
+      tutors: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'user',
+      }],
+      isVisible: {
+        type: Boolean,
+        default: true,
+      },
    },{
     timestamps: true,
    }
 )
 
 
-const Category = mongoose.model("categories",categorySchema)
+const Category = mongoose.model("categories",CategorySchema)
 
 module.exports= Category

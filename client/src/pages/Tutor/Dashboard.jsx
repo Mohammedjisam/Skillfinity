@@ -80,7 +80,7 @@ const Dashboard = () => {
                    <div className="text-xs text-white mb-1">
                      {item.month}
                    </div>
-                 n</div>
+                 </div>
                  ))}
                 </div>
                </div>

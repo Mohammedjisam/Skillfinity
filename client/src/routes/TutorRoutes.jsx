@@ -12,8 +12,9 @@ import ProtectedTutorLogin from '@/private/tutor/ProtectedTutorLogin'
 import ProtectedTutorRoutes from '@/private/tutor/ProtectedTutorRoutes'
 import AddCourse from '@/components/Courses/Tutor/AddCourse'
 import AddLesson from '@/components/Courses/Tutor/AddLesson'
-import MyCourses from '@/components/Courses/Tutor/MyCourse'
+import MyCourses from '../pages/Tutor/MyCourses'
 import EditCourse from '@/components/Courses/Tutor/EditCourse'
+import EditLesson from '@/components/Courses/Tutor/EditLesson'
 
 function TutorRoutes() {
   return (
@@ -33,7 +34,8 @@ function TutorRoutes() {
         <Route path='addcourse' element={<ProtectedTutorRoutes><AddCourse/></ProtectedTutorRoutes>}/>
         <Route path='addlesson/:id'element={<ProtectedTutorRoutes><AddLesson/></ProtectedTutorRoutes>}/>
         <Route path='mycourse'element={<ProtectedTutorRoutes><MyCourses/></ProtectedTutorRoutes>}/>
-        <Route path='editcourse'element={<ProtectedTutorRoutes><EditCourse/></ProtectedTutorRoutes>}/>
+        <Route path='editcourse/:id'element={<ProtectedTutorRoutes><EditCourse/></ProtectedTutorRoutes>}/>
+        <Route path='editlesson/:lessonId'element={<ProtectedTutorRoutes><EditLesson/></ProtectedTutorRoutes>}/>
       </Routes>
     <Footer/>
     </div>

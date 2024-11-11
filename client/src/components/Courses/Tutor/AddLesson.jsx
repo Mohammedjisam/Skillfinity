@@ -292,7 +292,7 @@ export default function AddLesson() {
                   <li key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                     <span>{index+1}</span>
                     <span>{lesson.lessontitle}</span>
-                    <span>{lesson.duration}</span>
+                    <span>{lesson.duration} minutes</span>
                   </li>
                 ))}
               </ul>

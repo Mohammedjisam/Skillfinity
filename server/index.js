@@ -2,6 +2,7 @@ const userRoute=require('./routes/user/userRoutes')
 const tutorRoute=require('./routes/tutor/tutorRoutes')
 const adminRoute=require('./routes/admin/adminRoutes')
 const courseRoute=require('./routes/course/courseRoutes')
+const dataRoutes=require('./routes/course/dataRoutes')
 
 const express=require('express')
 const mongoose=require("mongoose")
@@ -37,6 +38,7 @@ app.use(cors(
   });
   
 app.use("/user",userRoute)
+app.use("/user/data",dataRoutes)
 app.use("/tutor",tutorRoute)
 app.use("/tutor/course",courseRoute)
 app.use('/admin',adminRoute)

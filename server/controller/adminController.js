@@ -226,7 +226,6 @@ const addCategory = async (req, res) => {
   try {
     const category = new Category({ title, description });
     await category.save();
-
     res.status(201).json({ message: "Category created successfully", category });
   } catch (error) {
     console.error("Error creating category:", error);
@@ -276,4 +275,6 @@ const deleteCategory = async (req, res) => {
   }
 }
 
-module.exports = {adminLogin,forgotPassword,resetPassword,logoutAdmin,students,tutors,listUser,unlistUser,lisTtutor,unlisTtutor,addCategory,getCategories ,updateCategory ,deleteCategory  };  
+
+
+module.exports = {adminLogin,forgotPassword,resetPassword,logoutAdmin,students,tutors,listUser,unlistUser,lisTtutor,unlisTtutor,addCategory,getCategories ,updateCategory ,deleteCategory };  

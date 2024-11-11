@@ -1,31 +1,33 @@
 const Course = require('../model/courseModel');
 const Lesson = require('../model/lessonModel')
-const cloudinary = require('../config/cloudinaryConfig');
-const Category = require('../model/categoryModel')
+const Category= require('../model/categoryModel')
 
 const addCourse = async (req, res) => {
   try {
+    const { coursetitle, category, price, features, thumbnail, tutor, difficulty, courseStructure } = req.body;
     
-    const { coursetitle, category, price, features, thumbnail,tutor,difficulty} = req.body;
-    console.log("asjdajd",category);
-    
-    
-   const categoryData = await Category.findById(category);
+    const categoryData = await Category.findById(category);
     if (!categoryData) {
-      
       return res.status(404).send("Category not found");
     }
+
     const newCourse = new Course({
       coursetitle,
-      category:categoryData._id,
+      category: categoryData._id,
       price,
       features,
-      thumbnail: thumbnail,
+      thumbnail,
       tutor,
       difficulty,
+      courseStructure,
     });
 
     await newCourse.save();
+
+    // Add the new course ID to the category's course array
+    categoryData.courses.push(newCourse._id);
+    categoryData.tutors.push(tutor);
+    await categoryData.save();
 
     res.status(201).json({ message: "Course added successfully", course: newCourse });
   } catch (error) {
@@ -33,6 +35,7 @@ const addCourse = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 const addLesson = async (req, res) => {
   try {
@@ -90,7 +93,7 @@ const viewCourse = async (req, res) => {
 const deleteCourse = async (req, res) => {
   try {
     const courseId = req.params.id;
-    const tutorId = req.user._id; // Get the tutor ID from the authenticated user
+    const tutorId = req.user._id; 
 
     // Find the course by ID
     const course = await Course.findById(courseId);
@@ -116,4 +119,143 @@ const deleteCourse = async (req, res) => {
   }
 };
 
-module.exports = { addCourse, addLesson, viewCourse, deleteCourse };
+const viewData = async (req, res) => {
+  try {
+    const  courseId  = req.params.id // Retrieve course ID from route parameters
+    const tutorId = req.user._id; 
+    console.log(courseId)   // Retrieve tutor ID from authenticated user
+
+    // Find the specific course by ID and check if the tutor is the creator of this course
+    const course = await Course.findOne({ _id: courseId, tutor: tutorId })
+      .populate('category') // Populate category details
+      .populate('lessons')
+      .populate('tutor', 'name email'); // Populate tutor details for the course
+      console.log(course)
+
+    // Check if the course exists and belongs to the logged-in tutor
+    if (!course) {
+      return res.status(404).json({ message: "Course not found or unauthorized" });
+    }
+
+    res.status(200).json({ course });
+  } catch (error) {
+    console.error("Error in viewData:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const editCourse = async (req, res) => {
+
+  
+  try {
+    const courseId = req.params.id; // Retrieve course ID from route parameters
+    const tutorId = req.user._id; // Retrieve tutor ID from authenticated user
+    // const updates = req.body;
+
+    // Find the course by ID and ensure the tutor is the owner
+    const course = await Course.findOne({ _id: courseId, tutor: tutorId });
+    if (!course) {
+      return res.status(404).json({ message: "Course not found or unauthorized" });
+    }
+    // const updatedCourse = await Course.findByIdAndUpdate(id, updates, { new: true });
+
+    // if (!updatedCourse) {
+    //   return res.status(404).json({ error: 'Course not found' });
+    // }
+
+    // Extract fields to be updated from the request body
+    const { coursetitle, price, features, courseStructure, thumbnail } = req.body;
+
+    // Update the course details if provided
+    if (coursetitle) course.coursetitle = coursetitle;
+    if (price) course.price = price;
+    if (features) course.features = features;
+    if (courseStructure) course.courseStructure = courseStructure;
+    if (thumbnail) course.thumbnail = thumbnail;
+
+    // Save the updated course
+    await course.save();
+
+    res.status(200).json({ message: "Course updated successfully", course });
+  } catch (error) {
+    console.error("Error in editCourse:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const deleteLesson = async (req, res) => {
+  try {
+    const lessonId = req.params.lessonId; // Retrieve lesson ID from route parameters
+    const tutorId = req.user._id; 
+    console.log("lesson",lessonId)// Retrieve tutor ID from authenticated user
+    console.log("tutor",tutorId)
+    // Find the lesson by ID
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      return res.status(404).json({ message: "Lesson not found" });
+    }
+
+    // Check if the lesson's course belongs to the authenticated tutor
+    const course = await Course.findOne({ _id: lesson.course, tutor: tutorId });
+    if (!course) {
+      return res.status(403).json({ message: "Unauthorized to delete this lesson" });
+    }
+
+    // Remove the lesson ID from the course's lessons array
+    course.lessons = course.lessons.filter(id => id.toString() !== lessonId);
+    await course.save();
+
+    // Delete the lesson from the database
+    await Lesson.findByIdAndDelete(lessonId);
+
+    res.status(200).json({ message: "Lesson deleted successfully" });
+  } catch (error) {
+    console.error("Error in deleteLesson:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+const editLesson = async (req, res) => {
+  try {
+    const lessonId = req.params.lessonId; // Retrieve lesson ID from route parameters
+    const tutorId = req.user._id; // Retrieve tutor ID from authenticated user
+
+    // Find the lesson by ID
+    const lesson = await Lesson.findById(lessonId);
+    if (!lesson) {
+      return res.status(404).json({ message: "Lesson not found" });
+    }
+
+    console.log(lesson);
+    
+    // Check if the lesson's course belongs to the authenticated tutor
+    const course = await Course.findOne({ _id: lesson.course, tutor: tutorId });
+    if (!course) {
+      return res.status(403).json({ message: "Unauthorized to access or modify this lesson" });
+    }
+
+    // Handle GET request: return the lesson details
+    if (req.method === 'GET') {
+      return res.status(200).json({ lesson });
+    }
+
+    // Handle PUT request: update the lesson details
+    const { title, duration, videoUrl, pdfUrl, description } = req.body;
+    if (title) lesson.lessontitle = title;
+    if (duration) lesson.duration = duration;
+    if (videoUrl) lesson.Video = videoUrl;
+    if (pdfUrl) lesson.pdfnotes = pdfUrl;
+    if (description) lesson.description = description;
+
+    // Save the updated lesson
+    await lesson.save();
+
+    res.status(200).json({ message: "Lesson updated successfully", lesson });
+  } catch (error) {
+    console.error("Error in editLesson:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+
+module.exports = { addCourse, addLesson, viewCourse, deleteCourse,viewData,editCourse ,deleteLesson,editLesson};

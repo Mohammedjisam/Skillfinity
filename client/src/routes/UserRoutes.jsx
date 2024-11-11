@@ -5,7 +5,6 @@ import Otp from '@/components/common/Otp'
 import Login from '@/pages/User/Login'
 import Signup from '@/pages/User/SignUp'
 import Home from '@/pages/User/Home'
-
 import { Route, Routes } from 'react-router-dom'
 import ForgotPassword from '@/pages/User/ForgotPassword'
 import ResetPassword from '@/pages/User/ResetPassword'
@@ -14,6 +13,12 @@ import ProtectedUserLogin from '@/private/user/ProtectedUserLogin'
 import ProtectedUserRoutes from '@/private/user/ProtectedUserRoutes'
 import BestSellerCourse from '@/components/Courses/User/BestSellerCourse'
 import Category from '@/components/Courses/User/Category'
+import AllCourse from '../components/Courses/User/AllCourse'
+import CourseDetails from '../components/Courses/User/CourseDetails'
+import Cart from '../components/Courses/User/Cart'
+import ViewAllCategory from '../components/Courses/User/ViewAllCategory'
+import ViewAllTutors from '../components/Courses/User/ViewAllTutors'
+import ViewTutor from '@/components/Courses/User/ViewTutor'
 
 function UserRoutes() {
   return (
@@ -34,8 +39,14 @@ function UserRoutes() {
         <Route path='profile' element={<ProtectedUserRoutes>
           <Profile/>
         </ProtectedUserRoutes>}/>
+        <Route path='allcourse' element={<ProtectedUserRoutes><AllCourse/></ProtectedUserRoutes>}/>
+        <Route path='coursedetails/:courseId' element={<ProtectedUserRoutes><CourseDetails/></ProtectedUserRoutes>}/>
         <Route path='bestsellercourse' element={<ProtectedUserRoutes><BestSellerCourse/></ProtectedUserRoutes>}/>
-        <Route path='category' element={<ProtectedUserRoutes><Category /></ProtectedUserRoutes>}/>
+        <Route path='category/:categoryId' element={<ProtectedUserRoutes><Category /></ProtectedUserRoutes>}/>
+        <Route path='cart' element={<ProtectedUserRoutes><Cart /></ProtectedUserRoutes>}/>
+        <Route path='viewallcategories' element={<ProtectedUserRoutes><ViewAllCategory /></ProtectedUserRoutes>}/>
+        <Route path='viewtutor/:id' element={<ProtectedUserRoutes><ViewTutor /></ProtectedUserRoutes>}/>
+        <Route path='viewalltutors' element={<ProtectedUserRoutes><ViewAllTutors /></ProtectedUserRoutes>}/>
        </Routes>
        <Footer />
     </div>

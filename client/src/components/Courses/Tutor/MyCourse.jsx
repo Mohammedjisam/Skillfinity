@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Pencil, Trash2, Menu } from 'lucide-react'
+import { Pencil, Trash2, Menu, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import SideBar from '../../../pages/Tutor/SideBar'
@@ -12,9 +12,11 @@ const MyCourses = () => {
   const [courses, setCourses] = useState([])
   const [totalPages, setTotalPages] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false) // Modal state
-  const [selectedCourse, setSelectedCourse] = useState(null) // Selected course for deletion
+  const [modalOpen, setModalOpen] = useState(false)
+  const [selectedCourse, setSelectedCourse] = useState(null)
   const navigate = useNavigate()
+
+  const itemsPerPage = 4
 
   useEffect(() => {
     fetchCourses()
@@ -24,8 +26,12 @@ const MyCourses = () => {
     setIsLoading(true)
     try {
       const response = await axiosInstance.get('/tutor/course/viewcourse')
-      setCourses(response.data.courses)
-      setTotalPages(Math.ceil(response.data.courses.length / 5))
+      const allCourses = response.data.courses
+      setTotalPages(Math.ceil(allCourses.length / itemsPerPage))
+      
+      const startIndex = (currentPage - 1) * itemsPerPage
+      const endIndex = startIndex + itemsPerPage
+      setCourses(allCourses.slice(startIndex, endIndex))
     } catch (error) {
       console.error('Error fetching courses:', error)
       toast.error('Failed to fetch courses')
@@ -35,25 +41,29 @@ const MyCourses = () => {
   }
 
   const handleEdit = (courseId) => {
-    navigate(`/tutor/edit-course/${courseId}`)
+    navigate(`/tutor/editcourse/${courseId}`)
   }
 
   const handleDelete = (courseId) => {
-    setSelectedCourse(courseId) // Set the selected course ID
-    setModalOpen(true) // Open the modal
+    setSelectedCourse(courseId)
+    setModalOpen(true)
   }
 
   const confirmDelete = async () => {
     try {
       await axiosInstance.delete(`/tutor/course/viewcourse/${selectedCourse}`)
       toast.success('Course deleted successfully')
-      fetchCourses() // Refresh the course list
+      fetchCourses()
     } catch (error) {
       console.error('Error deleting course:', error)
       toast.error('Failed to delete course')
     } finally {
-      setModalOpen(false) // Close the modal
+      setModalOpen(false)
     }
+  }
+
+  const handlePageChange = (newPage) => {
+    setCurrentPage(newPage)
   }
 
   return (
@@ -122,6 +132,41 @@ const MyCourses = () => {
                 ))}
               </div>
             )}
+
+            {/* Pagination */}
+            <div className="mt-6 flex justify-center">
+              <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                >
+                  <span className="sr-only">Previous</span>
+                  <ChevronLeft className="h-5 w-5" aria-hidden="true" />
+                </button>
+                {[...Array(totalPages)].map((_, index) => (
+                  <button
+                    key={index}
+                    onClick={() => handlePageChange(index + 1)}
+                    className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                      currentPage === index + 1
+                        ? 'z-10 bg-indigo-50 border-indigo-500 text-indigo-600'
+                        : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                    }`}
+                  >
+                    {index + 1}
+                  </button>
+                ))}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
+                >
+                  <span className="sr-only">Next</span>
+                  <ChevronRight className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </nav>
+            </div>
           </div>
         </main>
       </div>
