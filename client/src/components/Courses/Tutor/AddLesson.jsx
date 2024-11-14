@@ -1,14 +1,30 @@
 import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate, useParams } from 'react-router-dom'
-import { Menu, Upload, FileText } from 'lucide-react'
+import { Menu, Upload, FileText, Loader2 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import SideBar from '../../../pages/Tutor/SideBar'
 import axiosInstance from '../../../AxiosConfig'
-import { toast } from 'sonner';
+import { toast } from 'sonner'
+
+const LoadingFallback = ({ progress, message }) => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <Card className="w-96 p-6 bg-white rounded-lg shadow-xl">
+      <h2 className="text-2xl font-bold mb-4 text-center">{message}</h2>
+      <div className="flex justify-center mb-4">
+        <Loader2 className="w-12 h-12 animate-spin text-teal-500" />
+      </div>
+      <Progress value={progress} className="mb-4" />
+      <p className="text-center text-gray-600">
+        {progress.toFixed(0)}% Complete
+      </p>
+    </Card>
+  </div>
+)
 
 export default function AddLesson() {
   const { id: courseId } = useParams()
@@ -28,11 +44,17 @@ export default function AddLesson() {
   const [pdfFile, setPdfFile] = useState(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [uploadType, setUploadType] = useState('')
+  const [uploadProgress, setUploadProgress] = useState(0)
   const [videoPreview, setVideoPreview] = useState(null)
   const [addedLessons, setAddedLessons] = useState([])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
+    if (name === 'title' && value.length > 20) {
+      toast.error('Lesson title cannot exceed 20 characters')
+      return
+    }
     setLessonData((prevData) => ({
       ...prevData,
       [name]: value,
@@ -54,6 +76,40 @@ export default function AddLesson() {
     setPdfFile(e.target.files[0])
   }
 
+  const uploadFile = async (file, uploadType) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('upload_preset', 'skillfinity_media')
+    formData.append('cloud_name', 'dwxnxuuht')
+
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/dwxnxuuht/${uploadType}/upload`)
+
+    return new Promise((resolve, reject) => {
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = (event.loaded / event.total) * 100
+          setUploadProgress(percentComplete)
+        }
+      }
+
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText)
+          resolve(response.secure_url)
+        } else {
+          reject(new Error('Upload failed'))
+        }
+      }
+
+      xhr.onerror = function() {
+        reject(new Error('Upload failed'))
+      }
+
+      xhr.send(formData)
+    })
+  }
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsUploading(true)
@@ -63,40 +119,19 @@ export default function AddLesson() {
       let pdfUrl = ''
 
       if (videoFile) {
-        const videoFormData = new FormData()
-        videoFormData.append('file', videoFile)
-        videoFormData.append('upload_preset', 'skillfinity_media')
-        videoFormData.append('cloud_name', 'dwxnxuuht')
-
-        const videoResponse = await fetch(
-          'https://api.cloudinary.com/v1_1/dwxnxuuht/video/upload',
-          {
-            method: 'POST',
-            body: videoFormData,
-          }
-        )
-
-        const videoData = await videoResponse.json()
-        videoUrl = videoData.secure_url
+        setUploadType('video')
+        setUploadProgress(0)
+        videoUrl = await uploadFile(videoFile, 'video')
       }
 
       if (pdfFile) {
-        const pdfFormData = new FormData()
-        pdfFormData.append('file', pdfFile)
-        pdfFormData.append('upload_preset', 'skillfinity_media')
-        pdfFormData.append('cloud_name', 'dwxnxuuht')
-
-        const pdfResponse = await fetch(
-          'https://api.cloudinary.com/v1_1/dwxnxuuht/raw/upload',
-          {
-            method: 'POST',
-            body: pdfFormData,
-          }
-        )
-
-        const pdfData = await pdfResponse.json()
-        pdfUrl = pdfData.secure_url
+        setUploadType('pdf')
+        setUploadProgress(0)
+        pdfUrl = await uploadFile(pdfFile, 'raw')
       }
+
+      setUploadType('lesson')
+      setUploadProgress(0)
 
       const lessonDataToSubmit = {
         ...lessonData,
@@ -126,6 +161,8 @@ export default function AddLesson() {
       toast.error('Failed to add lesson')
     } finally {
       setIsUploading(false)
+      setUploadType('')
+      setUploadProgress(0)
     }
   }
 
@@ -163,13 +200,14 @@ export default function AddLesson() {
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Lesson Title
+                      Lesson Title (max 20 characters)
                     </label>
                     <Input
                       name="title"
                       value={lessonData.title}
                       onChange={handleInputChange}
                       required
+                      maxLength={20}
                       className="w-full bg-rose-50 border-none"
                     />
                   </div>
@@ -196,6 +234,8 @@ export default function AddLesson() {
                       value={lessonData.duration}
                       onChange={handleInputChange}
                       required
+                      type="number"
+                      min="1"
                       className="w-full bg-rose-50 border-none"
                     />
                   </div>
@@ -276,7 +316,7 @@ export default function AddLesson() {
                 <Button
                   type="submit"
                   disabled={isUploading}
-                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"
+                  className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 text-lg font-medium"
                 >
                   {isUploading ? 'Uploading...' : 'Add Lesson'}
                 </Button>
@@ -290,22 +330,32 @@ export default function AddLesson() {
               <ul className="space-y-2">
                 {addedLessons.map((lesson, index) => (
                   <li key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                    <span>{index+1}</span>
-                    <span>{lesson.lessontitle}</span>
+                    <span>{index + 1}</span>
+                    <span>{lesson.title}</span>
                     <span>{lesson.duration} minutes</span>
                   </li>
                 ))}
               </ul>
               <Button
                 onClick={handleFinishCourse}
-                className="mt-6 w-full bg-blue-500 hover:bg-blue-600 text-white"
+                className="mt-6 w-full bg-blue-500 hover:bg-blue-600 text-white py-3 text-lg font-medium"
               >
-                Submit
+                Finish Course
               </Button>
             </Card>
           )}
         </main>
       </div>
+      {isUploading && (
+        <LoadingFallback 
+          progress={uploadProgress} 
+          message={
+            uploadType === 'video' ? 'Uploading Video...' :
+            uploadType === 'pdf' ? 'Uploading PDF...' :
+            'Adding Lesson...'
+          }
+        />
+      )}
     </div>
   )
 }

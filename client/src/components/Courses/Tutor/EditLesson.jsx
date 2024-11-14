@@ -41,6 +41,11 @@ export default function EditLesson() {
   
 
   const handleInputChange = (field, value) => {
+    if (field === 'lessontitle' && value.length > 22) {
+      toast.error('Lesson title cannot exceed 22 characters.');
+      return;
+    }
+  
     setLessonData((prevData) => ({
       ...prevData,
       [field]: value,
@@ -141,16 +146,20 @@ export default function EditLesson() {
           <div className="max-w-6xl mx-auto p-6 pb-6">
             <div className="bg-white shadow-md rounded-lg overflow-hidden">
               <div className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Lesson Title</label>
-                  <input
-                    type="text"
-                    value={lessonData.lessontitle}
-                    onChange={(e) => handleInputChange('lessontitle', e.target.value)}
-                    className="w-full p-2 border rounded border-dashed border-gray-300 bg-rose-50"
-                    placeholder="Lesson Title"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Lesson Title</label>
+                <input
+                  type="text"
+                  value={lessonData.lessontitle}
+                  onChange={(e) => handleInputChange('lessontitle', e.target.value)}
+                  className="w-full p-2 border rounded border-dashed border-gray-300 bg-rose-50"
+                  placeholder="Lesson Title"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  {lessonData.lessontitle ? lessonData.lessontitle.length : 0} / 22 characters
+                </p>
+              </div>
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Duration</label>
                   <input

@@ -78,14 +78,15 @@ export default function AddCategory() {
                   Category Title
                 </label>
                 <input
-                  type="text"
-                  id="title"
-                  name="title"
-                  required
-                  value={formData.title}
-                  onChange={handleChange}
-                  className="w-full p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+                 type="text"
+                 id="title"
+                 name="title"
+                 required
+                 maxLength={20} 
+                 value={formData.title}
+                 onChange={handleChange}
+                 className="w-full p-2 border rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+               />
               </div>
 
               <div>

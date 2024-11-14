@@ -1,15 +1,31 @@
 import { useState, useEffect } from 'react'
 import { useSelector } from 'react-redux'
 import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner';
-import { Menu, Upload } from 'lucide-react'
+import { toast } from 'sonner'
+import { Menu, Upload, Loader2 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Card } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
 import SideBar from '../../../pages/Tutor/SideBar'
 import axiosInstance from '../../../AxiosConfig'
+
+const LoadingFallback = ({ progress, message }) => (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <Card className="w-96 p-6 bg-white rounded-lg shadow-xl">
+      <h2 className="text-2xl font-bold mb-4 text-center">{message}</h2>
+      <div className="flex justify-center mb-4">
+        <Loader2 className="w-12 h-12 animate-spin text-teal-500" />
+      </div>
+      <Progress value={progress} className="mb-4" />
+      <p className="text-center text-gray-600">
+        {progress.toFixed(0)}% Complete
+      </p>
+    </Card>
+  </div>
+)
 
 export default function AddCourse() {
   const tutor = useSelector(state => state.tutor.tutorDatas)
@@ -23,11 +39,14 @@ export default function AddCourse() {
     thumbnail: null,
     tutor: tutor._id,
     difficulty: '',
-    courseStructure: ['', '', '', '', '', '']
+    courseStructure: ['', '', '']
   })
   const [thumbnailPreview, setThumbnailPreview] = useState(null)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
+  const [isAddingCourse, setIsAddingCourse] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [addCourseProgress, setAddCourseProgress] = useState(0)
   const [categories, setCategories] = useState([])
 
   const difficultyLevels = [
@@ -54,11 +73,19 @@ export default function AddCourse() {
   }
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
+    
+    if (name === "coursetitle") {
+      if (value.length > 22) {
+        toast.error("Course title cannot exceed 22 characters");
+        return;
+      }
+    }
+  
     setCourseData(prevData => ({
       ...prevData,
       [name]: value
-    }))
+    }));
   }
 
   const handleStructureChange = (index, value) => {
@@ -68,11 +95,19 @@ export default function AddCourse() {
     }))
   }
 
+  const addNewSection = () => {
+    setCourseData(prevData => ({
+      ...prevData,
+      courseStructure: [...prevData.courseStructure, '']
+    }))
+  }
+
   const handleImageUpload = async (e) => {
     const file = e.target.files[0]
     if (!file) return
 
     setIsUploading(true)
+    setUploadProgress(0)
 
     try {
       const formData = new FormData()
@@ -80,30 +115,41 @@ export default function AddCourse() {
       formData.append('upload_preset', 'skillfinity_media')
       formData.append('cloud_name', 'dwxnxuuht')
       
-      const response = await fetch(
-        `https://api.cloudinary.com/v1_1/dwxnxuuht/image/upload`,
-        {
-          method: 'POST',
-          body: formData,
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', 'https://api.cloudinary.com/v1_1/dwxnxuuht/image/upload')
+      
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = (event.loaded / event.total) * 100
+          setUploadProgress(percentComplete)
         }
-      )
-
-      const data = await response.json()
-
-      if (data.secure_url) {
-        setCourseData(prevData => ({
-          ...prevData,
-          thumbnail: data.secure_url
-        }))
-        setThumbnailPreview(data.secure_url)
-        toast.success('Thumbnail uploaded successfully')
-      } else {
-        throw new Error('Failed to upload image')
       }
+
+      xhr.onload = function() {
+        if (xhr.status === 200) {
+          const response = JSON.parse(xhr.responseText)
+          setCourseData(prevData => ({
+            ...prevData,
+            thumbnail: response.secure_url
+          }))
+          setThumbnailPreview(response.secure_url)
+          toast.success('Thumbnail uploaded successfully')
+        } else {
+          throw new Error('Failed to upload image')
+        }
+        setIsUploading(false)
+      }
+
+      xhr.onerror = function() {
+        console.error('Image upload error')
+        toast.error('Failed to upload thumbnail')
+        setIsUploading(false)
+      }
+
+      xhr.send(formData)
     } catch (error) {
       console.error('Image upload error:', error)
       toast.error('Failed to upload thumbnail')
-    } finally {
       setIsUploading(false)
     }
   }
@@ -117,15 +163,33 @@ export default function AddCourse() {
     }
 
     try {
-      setIsUploading(true)
+      setIsAddingCourse(true)
+      setAddCourseProgress(0)
+
+      const interval = setInterval(() => {
+        setAddCourseProgress(prev => {
+          if (prev >= 95) {
+            clearInterval(interval)
+            return prev
+          }
+          return prev + 5
+        })
+      }, 500)
+
       const response = await axiosInstance.post('/tutor/course/addcourse', courseData)
-      toast.success('Course added successfully')
-      navigate(`/tutor/addlesson/${response.data.course._id}`)
+      
+      clearInterval(interval)
+      setAddCourseProgress(100)
+
+      setTimeout(() => {
+        setIsAddingCourse(false)
+        toast.success('Course added successfully')
+        navigate(`/tutor/addlesson/${response.data.course._id}`)
+      }, 1000)
     } catch (error) {
       console.error('Error adding course:', error)
       toast.error(error.response?.data?.message || 'Failed to add course')
-    } finally {
-      setIsUploading(false)
+      setIsAddingCourse(false)
     }
   }
 
@@ -159,13 +223,14 @@ export default function AddCourse() {
                 <div className="space-y-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Course Title
+                      Course Title (max 22 characters)
                     </label>
                     <Input
                       name="coursetitle"
                       value={courseData.coursetitle}
                       onChange={handleInputChange}
                       required
+                      maxLength={22}
                       className="w-full bg-rose-50 border-none"
                     />
                   </div>
@@ -276,7 +341,7 @@ export default function AddCourse() {
                     </Button>
                   </div>
 
-                  {/* New Course Structure Section */}
+                  {/* Dynamic Course Structure Section */}
                   <div className="mt-8">
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Course Structure
@@ -292,6 +357,13 @@ export default function AddCourse() {
                             className="w-full bg-white border-none"
                           />
                         ))}
+                        <Button
+                          type="button"
+                          onClick={addNewSection}
+                          className="mt-2 w-full bg-teal-500 hover:bg-teal-600 text-white"
+                        >
+                          Add Section
+                        </Button>
                       </div>
                     </div>
                   </div>
@@ -301,16 +373,28 @@ export default function AddCourse() {
               <div className="mt-8">
                 <Button
                   type="submit"
-                  disabled={isUploading}
+                  disabled={isUploading || isAddingCourse}
                   className="w-full bg-teal-500 hover:bg-teal-600 text-white py-6 text-lg font-medium"
                 >
-                  {isUploading ? 'Creating Course...' : 'Add Lessons'}
+                  {isAddingCourse ? 'Creating Course...' : 'Add Course'}
                 </Button>
               </div>
             </form>
           </Card>
         </main>
       </div>
+      {isUploading && (
+        <LoadingFallback 
+          progress={uploadProgress} 
+          message="Uploading Thumbnail"
+        />
+      )}
+      {isAddingCourse && (
+        <LoadingFallback 
+          progress={addCourseProgress} 
+          message="Creating Your Course"
+        />
+      )}
     </div>
   )
 }

@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronRight, Menu, X, Search, User, ShoppingCart } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
+import axiosInstance from '@/AxiosConfig';
 
 const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -10,11 +11,27 @@ const useAuth = () => {
 
 const Header = () => {
   const userData = useSelector((store) => store.user.userDatas);
-  const cartItems = useSelector((store) => store.cart.items) || [];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { isAuthenticated, setIsAuthenticated } = useAuth();
   const toggleAuth = () => setIsAuthenticated(!isAuthenticated);
   const navigate = useNavigate();
+  const [cartCount, setCartCount] = useState(0);
+
+  console.log("userdataaaa----->>",userData)
+  const fetchCartCount = async () => {
+    try {
+      console.log('Fetching cart count...');
+      const response = await axiosInstance.post(`/user/data/cartcount/${userData._id}`);
+      console.log('Cart count response:', response.data);
+      setCartCount(response.data.totalItems);
+    } catch (error) {
+      console.error('Error fetching cart count:', error);
+    }
+  };
+  
+  useEffect(() => {
+    fetchCartCount();
+  }, []);
 
   const handleProfileClick = () => {
     navigate('/profile');
@@ -79,12 +96,12 @@ const Header = () => {
                       onClick={handleCartClick}
                     >
                       <ShoppingCart className="h-6 w-6 text-gray-600" />
+                      {cartCount > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                          {cartCount}
+                        </span>
+                      )}
                     </button>
-                    {cartItems.length > 0 && (
-                      <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center absolute -top-2 -right-2">
-                        {cartItems.length}
-                      </span>
-                    )}
                   </div>
                   <button 
                     className="rounded-full" 
@@ -136,9 +153,9 @@ const Header = () => {
                 </div>
                 <button className="w-full px-4 py-2 text-left text-gray-700 hover:text-gray-900 bg-gray-100 rounded-md flex items-center justify-between" onClick={handleCartClick}>
                   <span>Cart</span>
-                  {cartItems.length > 0 && (
+                  {cartCount > 0 && (
                     <span className="bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {cartItems.length}
+                      {cartCount}
                     </span>
                   )}
                 </button>

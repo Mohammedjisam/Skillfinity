@@ -1,61 +1,101 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Heart, ShoppingCart, ChevronLeft } from 'lucide-react';
-import axiosInstance from '@/AxiosConfig';
-import { Button } from "@/components/ui/button";
-import { toast } from 'sonner';
-import { useSelector } from 'react-redux';
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Heart, ShoppingCart, ChevronLeft } from 'lucide-react'
+import axiosInstance from '@/AxiosConfig'
+import { Button } from "@/components/ui/button"
+import { toast } from 'sonner'
+import { useSelector } from 'react-redux'
 
 const AllCourse = () => {
-  const [courses, setCourses] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-  const navigate = useNavigate();
-  const coursesPerPage = 12;
-  const userDatas = useSelector((store) => store.user.userDatas);
+  const [courses, setCourses] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(0)
+  const [cartItems, setCartItems] = useState([])
+  const navigate = useNavigate()
+  const coursesPerPage = 12
+  const userDatas = useSelector((store) => store.user.userDatas)
 
   useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await axiosInstance.get('/user/data/viewallcourse');
-        const visibleCourses = response.data.courses.filter(course => course.isVisible);
-        setCourses(visibleCourses);
-        setTotalPages(Math.ceil(visibleCourses.length / coursesPerPage));
-      } catch (error) {
-        console.error("Error fetching courses:", error);
-        toast.error("Failed to load courses. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchCourses()
+    fetchCartItems()
+  }, [])
 
-    fetchCourses();
-  }, []);
+  useEffect(() => {
+    if (userDatas) {
+      fetchCartItems()
+    }
+  }, [userDatas])
+
+  const fetchCourses = async () => {
+    try {
+      const response = await axiosInstance.get('/user/data/viewallcourse')
+      const visibleCourses = response.data.courses.filter(course => course.isVisible)
+      setCourses(visibleCourses)
+      setTotalPages(Math.ceil(visibleCourses.length / coursesPerPage))
+    } catch (error) {
+      console.error("Error fetching courses:", error)
+      toast.error("Failed to load courses. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchCartItems = async () => {
+    try {
+      if (!userDatas || !userDatas._id) {
+        console.log("User data not available, skipping cart fetch")
+        return
+      }
+      const response = await axiosInstance.post('/user/data/cart', { userId: userDatas._id })
+      setCartItems(response.data.cart?.items || [])
+    } catch (error) {
+      console.error("Error fetching cart items:", error)
+      if (error.response && error.response.status === 401) {
+        console.log("User not authenticated, clearing cart items")
+        setCartItems([])
+      }
+    }
+  }
 
   const handleViewDetails = (courseId) => {
-    navigate(`/coursedetails/${courseId}`);
-  };
+    navigate(`/coursedetails/${courseId}`)
+  }
 
   const handleAddToCart = async (courseId) => {
     try {
-      const response = await axiosInstance.post(`/user/data/addcart/${courseId}`, { userId: userDatas._id });
-      toast.success("Course added to cart successfully!");
+      if (!userDatas || !userDatas._id) {
+        toast.error("Please log in to add items to cart.")
+        return
+      }
+      await axiosInstance.post(`/user/data/addcart/${courseId}`, { userId: userDatas._id })
+      toast.success("Course added to cart successfully!")
+      fetchCartItems() // Refetch cart items to ensure we have the latest data
     } catch (error) {
-      console.error("Error adding course to cart:", error);
-      toast.error("Failed to add course to cart.");
+      console.error("Error adding course to cart:", error)
+      toast.error("Failed to add course to cart.")
     }
-  };
+  }
 
-  const indexOfLastCourse = currentPage * coursesPerPage;
-  const indexOfFirstCourse = indexOfLastCourse - coursesPerPage;
-  const currentCourses = courses.slice(indexOfFirstCourse, indexOfLastCourse);
+  const handleGoToCart = () => {
+    navigate('/cart')
+  }
 
-  const paginate = (pageNumber) => setCurrentPage(pageNumber);
+  const indexOfLastCourse = currentPage * coursesPerPage
+  const indexOfFirstCourse = indexOfLastCourse - coursesPerPage
+  const currentCourses = courses.slice(indexOfFirstCourse, indexOfLastCourse)
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber)
 
   const handleBackClick = () => {
-    navigate(-1);
-  };
+    navigate(-1)
+  }
+
+  const isInCart = (courseId) => {
+    return cartItems.some(item => item.courseId._id === courseId)
+  }
 
   return (
     <div className="bg-gradient-to-b from-gray-100 to-white min-h-screen">
@@ -111,13 +151,23 @@ const AllCourse = () => {
                       >
                         View Details
                       </Button>
-                      <Button
-                        onClick={() => handleAddToCart(course._id)}
-                        className="flex-1 bg-green-600 hover:bg-primary/90"
-                      >
-                        <ShoppingCart className="w-4 h-4 mr-2" />
-                        Add to Cart
-                      </Button>
+                      {isInCart(course._id) ? (
+                        <Button
+                          onClick={handleGoToCart}
+                          className="flex-1 bg-yellow-500 hover:bg-yellow-600"
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          Go to Cart
+                        </Button>
+                      ) : (
+                        <Button
+                          onClick={() => handleAddToCart(course._id)}
+                          className="flex-1 bg-green-600 hover:bg-primary/90"
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          Add to Cart
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -145,7 +195,7 @@ const AllCourse = () => {
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default AllCourse;
+export default AllCourse

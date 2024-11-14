@@ -1,67 +1,104 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import axiosInstance from '@/AxiosConfig';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Loader2, Book, DollarSign, Mail, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
-import { useSelector } from 'react-redux';
+'use client'
 
-const ITEMS_PER_PAGE = 8;
+import React, { useEffect, useState } from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import axiosInstance from '@/AxiosConfig'
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Loader2, Book, DollarSign, Mail, ShoppingCart, ChevronLeft, ChevronRight } from 'lucide-react'
+import { toast } from 'sonner'
+import { useSelector } from 'react-redux'
+
+const ITEMS_PER_PAGE = 8
 
 const ViewTutor = () => {
-  const { id } = useParams();
-  const [tutor, setTutor] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const userDatas = useSelector((store) => store.user.userDatas);
-  console.log("userId",userDatas._id)
+  const { id } = useParams()
+  const [tutor, setTutor] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [cartItems, setCartItems] = useState([])
+  const userDatas = useSelector((store) => store.user.userDatas)
+  const navigate = useNavigate()
 
   useEffect(() => {
-    const fetchTutorDetails = async () => {
-      try {
-        const response = await axiosInstance.get(`/user/data/viewtutor/${id}`);
-        setTutor(response.data);
-        console.log(response);
-      } catch (err) {
-        setError("Failed to load tutor details");
-        toast.error("Failed to load tutor details");
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchTutorData()
+    fetchCartData()
+  }, [id, userDatas._id])
 
-    fetchTutorDetails();
-  }, [id]);
+  const fetchTutorData = async () => {
+    try {
+      const tutorResponse = await axiosInstance.get(`/user/data/viewtutor/${id}`)
+      setTutor(tutorResponse.data)
+      console.log("Fetched tutor data:", tutorResponse.data)
+    } catch (error) {
+      console.error("Error fetching tutor details:", error)
+      setError("Failed to load tutor details")
+      toast.error("Failed to load tutor details")
+      if (error.response) {
+        console.error("Response data:", error.response.data)
+      }
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchCartData = async () => {
+    try {
+      if (!userDatas || !userDatas._id) {
+        console.log("User data not available, skipping cart fetch")
+        return
+      }
+      const cartResponse = await axiosInstance.post("/user/data/cart", {
+        userId: userDatas._id,
+      })
+      const cartCourseIds = cartResponse.data.cart?.items.map(item => item.courseId._id) || []
+      setCartItems(cartCourseIds)
+    } catch (error) {
+      console.error("Error fetching cart information:", error)
+      if (error.response) {
+        console.error("Response data:", error.response.data)
+      }
+    }
+  }
 
   const handleAddToCart = async (courseId) => {
     try {
-      await axiosInstance.post(`/user/data/addcart/${courseId}`,{userId: userDatas._id});
-      toast.success('Course added to cart successfully!');
+      if (!userDatas || !userDatas._id) {
+        toast.error("Please log in to add items to cart.")
+        return
+      }
+      await axiosInstance.post(`/user/data/addcart/${courseId}`, { userId: userDatas._id })
+      setCartItems(prevItems => [...prevItems, courseId])
+      toast.success('Course added to cart successfully!')
     } catch (error) {
-      toast.error('Failed to add course to cart');
+      console.error("Error adding course to cart:", error)
+      toast.error('Failed to add course to cart')
     }
-  };
+  }
+
+  const goToCart = () => {
+    navigate('/cart')
+  }
 
   if (loading) return (
     <div className="flex justify-center items-center h-screen">
       <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
     </div>
-  );
+  )
 
   if (error) return (
     <div className="flex justify-center items-center h-screen">
       <p className="text-red-500 text-xl">{error}</p>
     </div>
-  );
+  )
 
-  const totalPages = tutor ? Math.ceil(tutor.courses.length / ITEMS_PER_PAGE) : 0;
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentCourses = tutor ? tutor.courses.slice(startIndex, endIndex) : [];
+  const totalPages = tutor ? Math.ceil(tutor.courses.length / ITEMS_PER_PAGE) : 0
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+  const endIndex = startIndex + ITEMS_PER_PAGE
+  const currentCourses = tutor ? tutor.courses.slice(startIndex, endIndex) : []
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-100 to-gray-200 py-6 sm:py-8 md:py-12">
@@ -119,13 +156,23 @@ const ViewTutor = () => {
                     <Button asChild variant="outline" className="w-full sm:w-1/2 text-xs sm:text-sm py-1">
                       <Link to={`/coursedetails/${course._id}`}>View Course</Link>
                     </Button>
-                    <Button 
-                      className="w-full sm:w-1/2 bg-green-600 hover:bg-green-700 text-xs sm:text-sm py-1"
-                      onClick={() => handleAddToCart(course._id)}
-                    >
-                      <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
-                      Add to Cart
-                    </Button>
+                    {cartItems.includes(course._id) ? (
+                      <Button 
+                        className="w-full sm:w-1/2 bg-yellow-500 hover:bg-yellow-600 text-xs sm:text-sm py-1"
+                        onClick={goToCart}
+                      >
+                        <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                        Go to Cart
+                      </Button>
+                    ) : (
+                      <Button 
+                        className="w-full sm:w-1/2 bg-green-600 hover:bg-green-700 text-xs sm:text-sm py-1"
+                        onClick={() => handleAddToCart(course._id)}
+                      >
+                        <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                        Add to Cart
+                      </Button>
+                    )}
                   </CardFooter>
                 </Card>
               ))}
@@ -171,7 +218,7 @@ const ViewTutor = () => {
         )}
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ViewTutor;
+export default ViewTutor

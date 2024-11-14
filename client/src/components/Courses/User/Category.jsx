@@ -1,57 +1,90 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Heart } from 'lucide-react';
-import axiosInstance from './../../../AxiosConfig';
-import { Card } from '@/components/ui/card';
-import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { TrendingUp } from 'lucide-react';
-import { toast } from 'sonner'; 
-import { useSelector } from 'react-redux';
+'use client'
+
+import React, { useEffect, useState } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { Heart, ShoppingCart, TrendingUp } from 'lucide-react'
+import axiosInstance from './../../../AxiosConfig'
+import { Card } from '@/components/ui/card'
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { toast } from 'sonner'
+import { useSelector } from 'react-redux'
 
 export default function CategoryPage() {
-  const { categoryId } = useParams();
-  const [categoryData, setCategoryData] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
-  const userDatas = useSelector((store) => store.user.userDatas);
-  console.log("userId", userDatas._id);
+  const { categoryId } = useParams()
+  const [categoryData, setCategoryData] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [cartItems, setCartItems] = useState([])
+  const navigate = useNavigate()
+  const userDatas = useSelector((store) => store.user.userDatas)
 
   useEffect(() => {
-    const fetchCategoryCourses = async () => {
-      try {
-        const response = await axiosInstance.get(`/user/data/viewcategory/${categoryId}`);
-        const courses = response.data.courses || [];
-        console.log("Fetched category data:", courses);
-        setCategoryData(courses);
-      } catch (error) {
-        console.error("Error fetching category data:", error);
-        setCategoryData([]);
-        toast.error("Failed to load courses for this category."); 
-      } finally {
-        setLoading(false);
+    fetchCategoryData()
+    fetchCartData()
+  }, [categoryId, userDatas._id])
+
+  const fetchCategoryData = async () => {
+    try {
+      const response = await axiosInstance.get(`/user/data/viewcategory/${categoryId}`)
+      const courses = response.data.courses || []
+      console.log("Fetched category data:", courses)
+      setCategoryData(courses)
+    } catch (error) {
+      console.error("Error fetching category data:", error)
+      setCategoryData([])
+      toast.error("Failed to load courses for this category.")
+      if (error.response) {
+        console.error("Response data:", error.response.data)
       }
-    };
-    fetchCategoryCourses();
-  }, [categoryId]);
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const fetchCartData = async () => {
+    try {
+      if (!userDatas || !userDatas._id) {
+        console.log("User data not available, skipping cart fetch")
+        return
+      }
+      const cartResponse = await axiosInstance.post("/user/data/cart", {
+        userId: userDatas._id,
+      })
+      const cartCourseIds = cartResponse.data.cart?.items.map(item => item.courseId._id) || []
+      setCartItems(cartCourseIds)
+    } catch (error) {
+      console.error("Error fetching cart information:", error)
+      if (error.response) {
+        console.error("Response data:", error.response.data)
+      }
+    }
+  }
 
   const handleAddToCart = async (courseId) => {
     try {
-      const response = await axiosInstance.post(`/user/data/addcart/${courseId}`, { userId: userDatas._id });
-      console.log(`Course with ID ${courseId} added to cart`, response.data);
-      toast.success("Course added to cart successfully!");
+      if (!userDatas || !userDatas._id) {
+        toast.error("Please log in to add items to cart.")
+        return
+      }
+      await axiosInstance.post(`/user/data/addcart/${courseId}`, { userId: userDatas._id })
+      toast.success("Course added to cart successfully!")
+      setCartItems(prevItems => [...prevItems, courseId])
     } catch (error) {
-      console.error("Error adding course to cart:", error);
-      toast.error("Failed to add course to cart.");
+      console.error("Error adding course to cart:", error)
+      toast.error("Failed to add course to cart.")
     }
-  };
+  }
+
+  const goToCart = () => {
+    navigate('/cart')
+  }
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
       </div>
-    );
+    )
   }
 
   return (
@@ -60,7 +93,7 @@ export default function CategoryPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {categoryData && categoryData.length > 0 ? (
             categoryData
-              .filter((course) => course.isVisible !== false) // Only show courses with isVisible true or undefined
+              .filter((course) => course.isVisible !== false)
               .map((course) => (
                 <Card 
                   key={course._id} 
@@ -81,7 +114,7 @@ export default function CategoryPage() {
                     <div className="flex items-center gap-3 mb-3">
                       <Avatar className="w-8 h-8">
                         <AvatarImage src={course.tutor?.profileImage} />
-                        <AvatarFallback>{course.tutor?.name || 'T'}</AvatarFallback>
+                        <AvatarFallback>{course.tutor?.name ? course.tutor.name[0] : 'T'}</AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col">
                         <span className="text-sm font-medium text-gray-900">
@@ -112,13 +145,25 @@ export default function CategoryPage() {
                       >
                         View Details
                       </Button>
-                      <Button
-                        variant="default"
-                        className="w-full bg-green-600 hover:bg-green-700 text-white"
-                        onClick={() => handleAddToCart(course._id)}
-                      >
-                        Add to Cart
-                      </Button>
+                      {cartItems.includes(course._id) ? (
+                        <Button
+                          variant="default"
+                          className="w-full bg-yellow-500 hover:bg-yellow-600 text-white"
+                          onClick={goToCart}
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          Go to Cart
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="default"
+                          className="w-full bg-green-600 hover:bg-green-700 text-white"
+                          onClick={() => handleAddToCart(course._id)}
+                        >
+                          <ShoppingCart className="w-4 h-4 mr-2" />
+                          Add to Cart
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </Card>
@@ -131,5 +176,5 @@ export default function CategoryPage() {
         </div>
       </div>
     </div>
-  );
+  )
 }

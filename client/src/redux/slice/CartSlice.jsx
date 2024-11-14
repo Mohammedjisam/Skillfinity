@@ -1,24 +1,31 @@
 import { createSlice } from '@reduxjs/toolkit';
-
-const initialState = {
-  items: [],
-};
+import axiosInstance from '@/AxiosConfig';
 
 const cartSlice = createSlice({
   name: 'cart',
-  initialState,
+  initialState: {
+    items: [],
+    count: 0,
+  },
   reducers: {
-    addToCart: (state, action) => {
-      state.items.push(action.payload);
+    setCartItems: (state, action) => {
+      state.items = action.payload;
     },
-    removeFromCart: (state, action) => {
-      state.items = state.items.filter(item => item.id !== action.payload);
-    },
-    clearCart: (state) => {
-      state.items = [];
+    updateCartCount: (state, action) => {
+      state.count = action.payload;
     },
   },
 });
 
-export const { addToCart, removeFromCart, clearCart } = cartSlice.actions;
+export const { setCartItems, updateCartCount } = cartSlice.actions;
+
+export const fetchCartCount = (userId) => async (dispatch) => {
+  try {
+    const response = await axiosInstance.post(`/user/data/cartcount/${userId}`);
+    dispatch(updateCartCount(response.data.totalItems));
+  } catch (error) {
+    console.error('Error fetching cart count:', error);
+  }
+};
+
 export default cartSlice.reducer;

@@ -12,32 +12,31 @@ export default function EditCourse() {
   const [courseData, setCourseData] = useState(null)
   const [editingStructureIndex, setEditingStructureIndex] = useState(null)
   const [thumbnailFile, setThumbnailFile] = useState(null)
-  const [reload,setReload] = useState(false)
-  
-  const tuorDatas = useSelector((store) => store.tutor.tutorDatas);
+  const [reload, setReload] = useState(false)
+
+  const tuorDatas = useSelector((store) => store.tutor.tutorDatas)
   const { id } = useParams()
   const navigate = useNavigate()
 
   useEffect(() => {
     if (!tuorDatas?._id) {
-      // Guard clause to handle undefined tutorId
       toast.error('Tutor data is not available yet.')
-      return;
+      return
     }
 
     const fetchCourseData = async () => {
       try {
-        const response = await axiosInstance.post(`/tutor/course/viewdata/${id}`, { tutorId: tuorDatas._id });
-        setCourseData(response.data.course);
+        const response = await axiosInstance.post(`/tutor/course/viewdata/${id}`, { tutorId: tuorDatas._id })
+        setCourseData(response.data.course)
       } catch (error) {
-        toast.error('Error fetching course data');
-        console.error('Error fetching course data:', error);
+        toast.error('Error fetching course data')
+        console.error('Error fetching course data:', error)
       }
     }
 
-    fetchCourseData();
+    fetchCourseData()
     setReload(false)
-  }, [id, tuorDatas,reload]);
+  }, [id, tuorDatas, reload])
 
   const handleDeleteCourse = async () => {
     try {
@@ -49,26 +48,19 @@ export default function EditCourse() {
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
         confirmButtonText: 'Yes, delete it!'
-      });
+      })
 
       if (result.isConfirmed) {
-        await axiosInstance.delete(`/tutor/course/viewcourse/`,{params:{
-          tutorId:tuorDatas._id,
-          courseId:id,
-        }});
-        Swal.fire(
-          'Deleted!',
-          'Your course has been deleted.',
-          'success'
-        );
-        toast.success('Course deleted successfully');
-        navigate('/tutor/mycourse');  
+        await axiosInstance.delete(`/tutor/course/viewcourse/`, { params: { tutorId: tuorDatas._id, courseId: id } })
+        Swal.fire('Deleted!', 'Your course has been deleted.', 'success')
+        toast.success('Course deleted successfully')
+        navigate('/tutor/mycourse')
       }
     } catch (error) {
-      toast.error('Failed to delete course');
-      console.error('Error deleting course:', error);
+      toast.error('Failed to delete course')
+      console.error('Error deleting course:', error)
     }
-  };
+  }
 
   const handleRemoveLesson = async (lessonId) => {
     try {
@@ -80,56 +72,44 @@ export default function EditCourse() {
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, delete it!'
-      });
+      })
 
       if (result.isConfirmed) {
-        await axiosInstance.delete(`/tutor/course/editlesson/`,{params:{
-          tutorId:tuorDatas._id,
-          lessonId,
-        }});
-        toast.success('Lesson removed successfully');
-        // const response = await axiosInstance.get(`/tutor/course/viewdata/${id}`);
-        // setCourseData(response.data.course);
+        await axiosInstance.delete(`/tutor/course/editlesson/`, { params: { tutorId: tuorDatas._id, lessonId } })
+        toast.success('Lesson removed successfully')
         setReload(true)
-        Swal.fire(
-          'Deleted!',
-          'Your lesson has been deleted.',
-          'success'
-        );
+        Swal.fire('Deleted!', 'Your lesson has been deleted.', 'success')
       }
     } catch (error) {
-      toast.error('Failed to remove lesson');
-      console.error('Error deleting lesson:', error);
+      toast.error('Failed to remove lesson')
+      console.error('Error deleting lesson:', error)
     }
-  };
+  }
 
   const handleEditLesson = (lessonId) => {
-    navigate(`/tutor/editlesson/${lessonId}`);
-  };
+    navigate(`/tutor/editlesson/${lessonId}`)
+  }
 
   const handleAddLesson = () => {
-    navigate(`/tutor/addlesson/${id}`);
-  };
+    navigate(`/tutor/addlesson/${id}`)
+  }
 
   const handleSaveChanges = async () => {
     try {
-      let thumbnailUrl = courseData.thumbnail;
+      let thumbnailUrl = courseData.thumbnail
 
       if (thumbnailFile) {
-        const formData = new FormData();
-        formData.append('file', thumbnailFile);
-        formData.append('upload_preset', 'skillfinity_media');
-        formData.append('cloud_name', 'dwxnxuuht');
+        const formData = new FormData()
+        formData.append('file', thumbnailFile)
+        formData.append('upload_preset', 'skillfinity_media')
+        formData.append('cloud_name', 'dwxnxuuht')
 
         const cloudinaryResponse = await fetch(
           `https://api.cloudinary.com/v1_1/dwxnxuuht/image/upload`,
-          {
-            method: 'POST',
-            body: formData
-          }
-        );
-        const cloudinaryData = await cloudinaryResponse.json();
-        thumbnailUrl = cloudinaryData.secure_url;
+          { method: 'POST', body: formData }
+        )
+        const cloudinaryData = await cloudinaryResponse.json()
+        thumbnailUrl = cloudinaryData.secure_url
       }
 
       const updatedData = {
@@ -138,52 +118,75 @@ export default function EditCourse() {
         features: courseData.features,
         thumbnail: thumbnailUrl,
         courseStructure: courseData.courseStructure,
-        tutorId: tuorDatas._id  // Ensure tutorId is correct here
-      };
-      
-      const response = await axiosInstance.put(`/tutor/course/editData/${id}`, updatedData);
+        tutorId: tuorDatas._id
+      }
 
-      toast.success('Course updated successfully');
-      navigate('/tutor/mycourse');  // Redirect after update
+      await axiosInstance.put(`/tutor/course/editData/${id}`, updatedData)
+
+      toast.success('Course updated successfully')
+      navigate('/tutor/mycourse')
     } catch (error) {
-      toast.error('Failed to update course');
-      console.error('Error updating course:', error);
+      toast.error('Failed to update course')
+      console.error('Error updating course:', error)
     }
-  };
+  }
 
   const handleInputChange = (field, value) => {
+    if (field === 'coursetitle') {
+      if (value.length > 20) {
+        toast.error('Course title cannot exceed 20 characters.')
+        return
+      }
+    }
+
     setCourseData((prevData) => ({
       ...prevData,
       [field]: value,
     }))
-  };
+  }
 
   const handleStructureChange = (index, value) => {
     setCourseData((prevData) => ({
       ...prevData,
-      courseStructure: prevData.courseStructure.map((item, i) => 
-        i === index ? value : item
-      ),
+      courseStructure: prevData.courseStructure.map((item, i) => i === index ? value : item),
     }))
-  };
+  }
 
   const handleEditStructure = (index) => {
     setEditingStructureIndex(index)
-  };
+  }
 
   const handleSaveStructure = () => {
     setEditingStructureIndex(null)
-  };
+  }
 
   const handleThumbnailChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      setThumbnailFile(e.target.files[0]);
-      toast.success('Thumbnail selected successfully');
+      setThumbnailFile(e.target.files[0])
+      toast.success('Thumbnail selected successfully')
     }
+  }
+
+  const addSection = (index) => {
+    setCourseData((prevData) => ({
+      ...prevData,
+      courseStructure: [
+        ...prevData.courseStructure.slice(0, index + 1),
+        '',
+        ...prevData.courseStructure.slice(index + 1),
+      ],
+    }));
+  };
+  
+  const removeSection = (index) => {
+    setCourseData((prevData) => ({
+      ...prevData,
+      courseStructure: prevData.courseStructure.filter((_, i) => i !== index),
+    }));
   };
 
   if (!courseData) {
-    return <div>Loading...</div>;
+    return <div>Loading...</div>
   }
 
   return (
@@ -224,41 +227,48 @@ export default function EditCourse() {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-6">
-                <div className="bg-white rounded-lg shadow p-6">
-                  <h2 className="text-xl font-semibold mb-4">Course Structure</h2>
-                  <div className="space-y-2">
-                    {courseData.courseStructure?.map((item, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 border-dashed border-gray-300 bg-rose-50">
-                        {editingStructureIndex === index ? (
-                          <>
-                            <input
-                              type="text"
-                              value={item}
-                              onChange={(e) => handleStructureChange(index, e.target.value)}
-                              className="flex-grow mr-2 p-1  rounded border-none"
-                            />
-                            <div>
-                              <button onClick={handleSaveStructure} className="text-green-600 hover:text-green-800 mr-2  ">
-                                <Save className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => setEditingStructureIndex(null)} className="text-red-600 hover:text-red-800">
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            <span>{index + 1}. {item}</span>
-                            <button onClick={() => handleEditStructure(index)} className="text-gray-500 hover:text-gray-700 ">
-                              <Edit2 className="w-4 h-4" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
+              <div className="bg-white rounded-lg shadow p-6">
+  <h2 className="text-xl font-semibold mb-4">Course Structure</h2>
+  <div className="space-y-2">
+    {courseData.courseStructure?.map((item, index) => (
+      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 border-dashed border-gray-300 bg-rose-50">
+        {editingStructureIndex === index ? (
+          <>
+            <input
+              type="text"
+              value={item}
+              onChange={(e) => handleStructureChange(index, e.target.value)}
+              className="flex-grow mr-2 p-1 rounded border-none"
+            />
+            <div>
+              <button onClick={handleSaveStructure} className="text-green-600 hover:text-green-800 mr-2">
+                <Save className="w-4 h-4" />
+              </button>
+              <button onClick={() => setEditingStructureIndex(null)} className="text-red-600 hover:text-red-800">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <span>{index + 1}. {item}</span>
+            <div className="flex items-center gap-2">
+              <button onClick={() => handleEditStructure(index)} className="text-gray-500 hover:text-gray-700">
+                <Edit2 className="w-4 h-4" />
+              </button>
+              <button onClick={() => addSection(index)} className="text-teal-500 hover:text-teal-700">
+                <PlusCircle className="w-4 h-4" />
+              </button>
+              <button onClick={() => removeSection(index)} className="text-red-500 hover:text-red-700">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    ))}
+  </div>
+</div>
                
                 <div className="bg-white rounded-lg shadow p-6">
                   <div className="flex justify-between items-center mb-4">
@@ -311,15 +321,18 @@ export default function EditCourse() {
               <div className="bg-white rounded-lg shadow p-6">
                 <h2 className="text-xl font-semibold mb-4">Course Details</h2>
                 <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Course Title</label>
-                    <input 
-                      type="text" 
-                      value={courseData.coursetitle} 
-                      onChange={(e) => handleInputChange('coursetitle', e.target.value)} 
-                      className="w-full p-2 border rounded-md border-dashed border-gray-300 bg-rose-50" 
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Course Title</label>
+                  <input 
+                    type="text" 
+                    value={courseData.coursetitle} 
+                    onChange={(e) => handleInputChange('coursetitle', e.target.value)} 
+                    className="w-full p-2 border rounded-md border-dashed border-gray-300 bg-rose-50" 
+                  />
+                  <p className="text-sm text-gray-500 mt-1">
+                    {courseData.coursetitle ? courseData.coursetitle.length : 0} / 20 characters
+                  </p>
+                </div>
 
                   <div>
                     <label className="block text-sm font-medium mb-1">Price</label>
