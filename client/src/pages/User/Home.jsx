@@ -23,7 +23,8 @@ export default function Home() {
     const fetchCourses = async () => {
       try {
         const response = await axiosInstance.get('/user/data/viewallcourse?limit=4');
-        setCourses(response.data.courses);
+        const visibleCourses = response.data.courses.filter(course => course.isVisible);
+        setCourses(visibleCourses);
       } catch (error) {
         console.error("Error fetching courses:", error);
       } finally {
@@ -126,12 +127,12 @@ export default function Home() {
          <section className="mb-16">
           <div className="flex justify-between items-center mb-8">
             <h2 className="text-3xl font-bold text-gray-800">Course Categories</h2>
-            <Button 
-              variant="outline" 
-              className="text-blue-600 border-blue-600" 
+            <Button
+              variant="ghost"
+              className="flex items-center text-gray-700 hover:text-gray-900 font-semibold transition duration-300 ease-in-out group"
               onClick={handleViewAllCategories}
             >
-              View All
+              View All <ArrowRight className="ml-2 w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </Button>
           </div>
           {loadingCategories ? (

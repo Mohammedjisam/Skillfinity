@@ -9,8 +9,8 @@ const courseSlice = createSlice({
         return storedData ? JSON.parse(storedData) : [];
       } catch (error) {
         console.warn("Error parsing courseData from localStorage:", error);
-        localStorage.removeItem("courseDatas"); // Clear invalid data
-        return []; // Set to empty array if parsing fails
+        localStorage.removeItem("courseDatas"); 
+        return []; 
       }
     })(),
   },

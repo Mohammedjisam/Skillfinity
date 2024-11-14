@@ -24,33 +24,19 @@ function AdminRoutes() {
       <AdminHeader/>
       <Routes>
 
-        <Route path='*' element={<ProtectedAdminLogin>
-           <AdminLogin/>
-           </ProtectedAdminLogin>}/>
-        <Route path='students' element={<ProtectedAdminRoutes>
-          <StudentManagement/>
-        </ProtectedAdminRoutes>}/>
-        <Route path="/student/:studentId" element={<ProtectedAdminRoutes>
-          <Student />
-        </ProtectedAdminRoutes>}/>
-        <Route path='tutors' element={<ProtectedAdminRoutes>
-          <TutorManagement/>
-        </ProtectedAdminRoutes>}/>
-        <Route path='courses' element={<ProtectedAdminRoutes>
-          <CourseManagement/>
-        </ProtectedAdminRoutes>}/>
-        <Route path='tutors/tutor' element={<ProtectedAdminRoutes>
-          <Tutor/>
-        </ProtectedAdminRoutes>}/>
-        <Route path='dashboard' element={<ProtectedAdminRoutes>
-          <AdminDashboard/>
-        </ProtectedAdminRoutes>}/>
+        <Route path='*' element={<ProtectedAdminLogin><AdminLogin/></ProtectedAdminLogin>}/>
+        <Route path='students' element={<ProtectedAdminRoutes><StudentManagement/></ProtectedAdminRoutes>}/>
+        <Route path="/student/:studentId" element={<ProtectedAdminRoutes><Student /></ProtectedAdminRoutes>}/>
+        <Route path='tutors' element={<ProtectedAdminRoutes><TutorManagement/></ProtectedAdminRoutes>}/>
+        <Route path='courses' element={<ProtectedAdminRoutes><CourseManagement/></ProtectedAdminRoutes>}/>
+        <Route path='tutors/tutor' element={<ProtectedAdminRoutes><Tutor/></ProtectedAdminRoutes>}/>
+        <Route path='dashboard' element={<ProtectedAdminRoutes><AdminDashboard/></ProtectedAdminRoutes>}/>
         <Route path="forgot-password" element={<AdminForgot/>}/>
         <Route path='reset-password/:token' element={<AdminReset/>}/>
-        <Route path='addcategory' element={<AddCategory/>}/>
-        <Route path='category' element={<CategoryManagement/>}/>
-        <Route path='courses/:id' element={<ViewCourseDetails/>}/>
-        <Route path='courses/:courseId/lessons' element={<ViewLessons/>}/>
+        <Route path='addcategory' element={<ProtectedAdminRoutes><AddCategory/></ProtectedAdminRoutes>}/>
+        <Route path='category' element={<ProtectedAdminRoutes><CategoryManagement/></ProtectedAdminRoutes>}/>
+        <Route path='courses/:id' element={<ProtectedAdminRoutes><ViewCourseDetails/></ProtectedAdminRoutes>}/>
+        <Route path='courses/:courseId/lessons' element={<ProtectedAdminRoutes><ViewLessons/></ProtectedAdminRoutes>}/>
 
       </Routes>
       <Footer />

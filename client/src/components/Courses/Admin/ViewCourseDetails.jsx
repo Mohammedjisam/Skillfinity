@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
 import { Card, CardContent } from "@/components/ui/card"
+import Swal from 'sweetalert2'
 
 export default function ViewCourseDetails() {
   const [courseData, setCourseData] = useState(null)
@@ -40,16 +41,39 @@ export default function ViewCourseDetails() {
     } 
   
 
-  const toggleVisibility = async () => {
-    try {
-      await axiosInstance.put(`/user/data/togglecoursevisibility/${id}`, { isVisible: !isVisible })
-      setIsVisible(!isVisible)
-      toast.success(`Course ${isVisible ? 'hidden' : 'unhidden'} successfully`)
-    } catch (error) {
-      console.error("Error toggling course visibility:", error)
-      toast.error("Failed to toggle course visibility")
+    const toggleVisibility = async () => {
+      const action = isVisible ? 'hide' : 'unhide'
+      const result = await Swal.fire({
+        title: `Are you sure you want to ${action} this course?`,
+        text: isVisible ? "Hidden courses won't be visible to students." : "Unhidden courses will be visible to students.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: isVisible ? '#d33' : '#3085d6',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: `Yes, ${action} it!`
+      })
+  
+      if (result.isConfirmed) {
+        try {
+          await axiosInstance.put(`/user/data/togglecoursevisibility/${id}`, { isVisible: !isVisible })
+          setIsVisible(!isVisible)
+          Swal.fire(
+            'Success!',
+            `Course has been ${action}d.`,
+            'success'
+          )
+          toast.success(`Course ${isVisible ? 'hidden' : 'unhidden'} successfully`)
+        } catch (error) {
+          console.error("Error toggling course visibility:", error)
+          Swal.fire(
+            'Error',
+            "Failed to toggle course visibility",
+            'error'
+          )
+          toast.error("Failed to toggle course visibility")
+        }
+      }
     }
-  }
 
   if (loading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>

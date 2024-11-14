@@ -26,19 +26,13 @@ function UserRoutes() {
         <Header/>
        <Routes>
         <Route path='*' element={<Landing/>}/>
-        <Route path='home' element={<ProtectedUserRoutes>
-          <Home/>
-        </ProtectedUserRoutes>}/>
-        <Route path='login' element={<ProtectedUserLogin>
-          <Login/>
-          </ProtectedUserLogin>}/>
+        <Route path='home' element={<ProtectedUserRoutes><Home/></ProtectedUserRoutes>}/>
+        <Route path='login' element={<ProtectedUserLogin><Login/></ProtectedUserLogin>}/>
         <Route path='signup' element={<Signup/>}/>
         <Route path="forgot-password" element={<ForgotPassword/>}/>
         <Route path='reset-password/:token' element={<ResetPassword/>}/>
         <Route path="otp" element={<Otp />}/>
-        <Route path='profile' element={<ProtectedUserRoutes>
-          <Profile/>
-        </ProtectedUserRoutes>}/>
+        <Route path='profile' element={<ProtectedUserRoutes><Profile/></ProtectedUserRoutes>}/>
         <Route path='allcourse' element={<ProtectedUserRoutes><AllCourse/></ProtectedUserRoutes>}/>
         <Route path='coursedetails/:courseId' element={<ProtectedUserRoutes><CourseDetails/></ProtectedUserRoutes>}/>
         <Route path='bestsellercourse' element={<ProtectedUserRoutes><BestSellerCourse/></ProtectedUserRoutes>}/>

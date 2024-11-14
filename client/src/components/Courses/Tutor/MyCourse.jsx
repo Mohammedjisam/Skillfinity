@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import SideBar from '../../../pages/Tutor/SideBar'
 import axiosInstance from '../../../AxiosConfig'
-import ConfirmationModal from '../../common/ConfirmationModal'
+import ConfirmationDialog from '../../common/ConfirmationDialog'
+import { useSelector } from 'react-redux'
 
 const MyCourses = () => {
   const [currentPage, setCurrentPage] = useState(1)
@@ -12,12 +13,11 @@ const MyCourses = () => {
   const [courses, setCourses] = useState([])
   const [totalPages, setTotalPages] = useState(1)
   const [isLoading, setIsLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [selectedCourse, setSelectedCourse] = useState(null)
   const navigate = useNavigate()
-
+  const tuorDatas = useSelector((store) => store.tutor.tutorDatas);
+  console.log(tuorDatas._id)
   const itemsPerPage = 4
-
+  
   useEffect(() => {
     fetchCourses()
   }, [currentPage])
@@ -25,7 +25,7 @@ const MyCourses = () => {
   const fetchCourses = async () => {
     setIsLoading(true)
     try {
-      const response = await axiosInstance.get('/tutor/course/viewcourse')
+      const response = await axiosInstance.get(`/tutor/course/viewcourse/${tuorDatas._id}`)
       const allCourses = response.data.courses
       setTotalPages(Math.ceil(allCourses.length / itemsPerPage))
       
@@ -44,22 +44,35 @@ const MyCourses = () => {
     navigate(`/tutor/editcourse/${courseId}`)
   }
 
-  const handleDelete = (courseId) => {
-    setSelectedCourse(courseId)
-    setModalOpen(true)
-  }
+  const handleDelete = async (courseId) => {
+    const { showConfirmation } = ConfirmationDialog({
+      title: 'Are you sure?',
+      text: "You won't be able to revert this!",
+      icon: 'warning',
+      confirmButtonText: 'Yes, delete it!',
+      onConfirm: async () => {
+        try {
+          await axiosInstance.delete(`/tutor/course/viewcourse/`,{params:{
+            tutorId:tuorDatas._id,
+            courseId,
+          }})
+          toast.success('Course deleted successfully')
+          // Update the course list after deletion
+          setCourses((prevCourses) => prevCourses.filter(course => course._id !== courseId))
+          // If the current page becomes empty after deletion, go to the previous page
+          if (courses.length === 1 && currentPage > 1) {
+            setCurrentPage(prev => prev - 1)
+          } else {
+            fetchCourses()
+          }
+        } catch (error) {
+          console.error('Error deleting course:', error)
+          toast.error('Failed to delete course')
+        }
+      }
+    })
 
-  const confirmDelete = async () => {
-    try {
-      await axiosInstance.delete(`/tutor/course/viewcourse/${selectedCourse}`)
-      toast.success('Course deleted successfully')
-      fetchCourses()
-    } catch (error) {
-      console.error('Error deleting course:', error)
-      toast.error('Failed to delete course')
-    } finally {
-      setModalOpen(false)
-    }
+    showConfirmation()
   }
 
   const handlePageChange = (newPage) => {
@@ -73,7 +86,7 @@ const MyCourses = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <header className="bg-white shadow-sm z-10">
           <div className="max-w-7xl mx-auto py-4 px-4 sm:px-6 lg:px-8 flex justify-between items-center">
-            <h1 className="text-2xl font-bold text-gray-900">My Courses ({courses.length})</h1>
+            <h1 className="text-2xl font-bold text-gray-900">My Courses </h1>
             <button
               onClick={() => setIsSidebarOpen(true)}
               className="p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 lg:hidden"
@@ -170,15 +183,6 @@ const MyCourses = () => {
           </div>
         </main>
       </div>
-
-      {/* Confirmation Modal */}
-      <ConfirmationModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onConfirm={confirmDelete}
-        title="Delete Course"
-        message="Are you sure you want to delete this course?"
-      />
     </div>
   )
 }

@@ -1,5 +1,6 @@
 const express = require("express");
 const User = require("../model/userModel");
+const Course = require("../model/courseModel"); 
 const bcrypt = require('bcryptjs');
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
@@ -7,74 +8,7 @@ const otpSchema = require('../model/otpStore');
 const otpGenerator = require("otp-generator");
 const crypto = require('crypto');
 const { mailSender, otpEmailTemplate } = require('../utils/nodeMailer');
-const cloudinary = require('../config/cloudinaryConfig');
 
-const passwordResetTemplate = (resetURL) => {
-    return {
-        subject: "Password Reset Request",
-        htmlContent: `
-            <h1>Password Reset Request</h1>
-            <p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p>
-            <p>Please click on the following link, or paste this into your browser to complete the process:</p>
-            <a href="${resetURL}">${resetURL}</a>
-            <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
-        `
-    };
-};
-
-const generateUniqueUserId = async (prefix = 'ttrskfnty') => {
-    const randomNumber = Math.floor(100000 + Math.random() * 900000);
-    const userId = `${prefix}${randomNumber}`;
-    const exists = await User.findOne({ user_id: userId });
-    return exists ? generateUniqueUserId(prefix) : userId;
-};
-
-const forgotPassword = async (req, res) => {
-    const { email } = req.body;
-    try {
-        const user = await User.findOne({ email, role: "tutor" });
-        if (!user) return res.status(404).json({ message: "Tutor doesn't exist" });
-
-        const resetToken = crypto.randomBytes(20).toString('hex');
-        user.resetPasswordToken = resetToken;
-        user.resetPasswordExpires = Date.now() + 3600000;
-        await user.save();
-
-        const resetURL = `http://localhost:5173/tutor/reset-password/${resetToken}`;
-        const { subject, htmlContent } = passwordResetTemplate(resetURL);
-        await mailSender(email, subject, htmlContent);
-
-        res.status(200).json({ message: 'Password reset link sent' });
-    } catch (error) {
-        console.error("Error in forgotPassword:", error);
-        res.status(500).json({ message: 'Something went wrong' });
-    }
-};
-
-const resetPassword = async (req, res) => {
-    const { token } = req.params;
-    const { password } = req.body;
-
-    try {
-        const user = await User.findOne({
-            resetPasswordToken: token,
-            resetPasswordExpires: { $gt: Date.now() },
-            role: "tutor"
-        });
-
-        if (!user) return res.status(400).json({ message: "Password reset token is invalid or has expired" });
-
-        user.password = await bcrypt.hash(password, 10);
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpires = undefined;
-        await user.save();
-
-        res.status(200).json({ message: 'Password has been reset' });
-    } catch (error) {
-        console.error("Error in resetPassword:", error);
-        res.status(500).json({ message: 'Something went wrong' });
-    }
-};
 
 const sendOtp = async (req, res) => {
     const { email } = req.body;
@@ -143,6 +77,73 @@ const login = async (req, res) => {
     }
 };
 
+const passwordResetTemplate = (resetURL) => {
+    return {
+        subject: "Password Reset Request",
+        htmlContent: `
+            <h1>Password Reset Request</h1>
+            <p>You are receiving this because you (or someone else) have requested the reset of the password for your account.</p>
+            <p>Please click on the following link, or paste this into your browser to complete the process:</p>
+            <a href="${resetURL}">${resetURL}</a>
+            <p>If you did not request this, please ignore this email and your password will remain unchanged.</p>
+        `
+    };
+};
+
+const generateUniqueUserId = async (prefix = 'ttrskfnty') => {
+    const randomNumber = Math.floor(100000 + Math.random() * 900000);
+    const userId = `${prefix}${randomNumber}`;
+    const exists = await User.findOne({ user_id: userId });
+    return exists ? generateUniqueUserId(prefix) : userId;
+};
+
+const forgotPassword = async (req, res) => {
+    const { email } = req.body;
+    try {
+        const user = await User.findOne({ email, role: "tutor" });
+        if (!user) return res.status(404).json({ message: "Tutor doesn't exist" });
+
+        const resetToken = crypto.randomBytes(20).toString('hex');
+        user.resetPasswordToken = resetToken;
+        user.resetPasswordExpires = Date.now() + 3600000;
+        await user.save();
+
+        const resetURL = `http://localhost:5173/tutor/reset-password/${resetToken}`;
+        const { subject, htmlContent } = passwordResetTemplate(resetURL);
+        await mailSender(email, subject, htmlContent);
+
+        res.status(200).json({ message: 'Password reset link sent' });
+    } catch (error) {
+        console.error("Error in forgotPassword:", error);
+        res.status(500).json({ message: 'Something went wrong' });
+    }
+};
+
+const resetPassword = async (req, res) => {
+    const { token } = req.params;
+    const { password } = req.body;
+
+    try {
+        const user = await User.findOne({
+            resetPasswordToken: token,
+            resetPasswordExpires: { $gt: Date.now() },
+            role: "tutor"
+        });
+
+        if (!user) return res.status(400).json({ message: "Password reset token is invalid or has expired" });
+
+        user.password = await bcrypt.hash(password, 10);
+        user.resetPasswordToken = undefined;
+        user.resetPasswordExpires = undefined;
+        await user.save();
+
+        res.status(200).json({ message: 'Password has been reset' });
+    } catch (error) {
+        console.error("Error in resetPassword:", error);
+        res.status(500).json({ message: 'Something went wrong' });
+    }
+};
+
 
 const updateTutor = async (req, res) => {
     try {
@@ -184,4 +185,20 @@ const logoutUser = (req, res) => {
     res.status(200).json({ message: 'Logged out successfully' });
 };
 
-module.exports = { signUp, login, updateTutor,  logoutUser, forgotPassword, resetPassword, sendOtp };
+const viewProfile = async (req, res) => {
+    try {
+        const tutor = await User.findById(req.user.id).select("-password"); 
+        if (!tutor) {
+            return res.status(404).json({ success: false, message: "Tutor not found" });
+        }
+        res.status(200).json({ success: true, tutor });
+    } catch (error) {
+        console.error("Error in viewProfile:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+
+
+
+module.exports = { signUp, login, updateTutor,  logoutUser, forgotPassword, resetPassword, sendOtp,viewProfile };

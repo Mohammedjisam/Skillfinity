@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom'; 
+import axiosInstance from '@/AxiosConfig';
+import { useNavigate } from 'react-router-dom';
 import { EyeIcon, EyeOffIcon } from "lucide-react";
 import { toast } from 'sonner';
 import Otp from '../../components/common/Otp'; 
 import { GoogleLogin } from '@react-oauth/google';
-import { jwtDecode } from "jwt-decode";
-import { addTutor } from '@/redux/slice/TutorSlice';
+import {jwtDecode} from "jwt-decode";
 import { useDispatch } from 'react-redux';
-import axiosInstance from '@/AxiosConfig';
+import { addTutor } from '@/redux/slice/TutorSlice';
 
 const TutorSignup = () => {
   const [name, setName] = useState("");
@@ -69,13 +68,10 @@ const TutorSignup = () => {
           toast.success("Generating OTP, please wait");
           const response = await axiosInstance.post("/tutor/sendotp", { email });
           toast.success(response.data.message);
-          console.log(response.data.otp)
+          console.log(response.data.otp);
           setIsOTPDialogOpen(true);
         } catch (err) {
-          if (err.response && err.response.status === 409) {
-            return toast.error(err.response.data.message);
-          }
-          toast.error("An error occurred. Please try again.");
+          handleSignupError(err);
         }
       } else {
         toast.error("Confirm password does not match");
@@ -83,6 +79,15 @@ const TutorSignup = () => {
     } else {
       Object.values(errors).forEach(error => toast.error(error));
     }
+  };
+
+  const handleSignupError = (err) => {
+    if (err.response && err.response.status === 409) {
+      toast.error(err.response.data.message);
+    } else {
+      toast.error("An error occurred. Please try again.");
+    }
+    console.log(err);
   };
 
   const handleOTPVerify = async (otpString) => {
@@ -94,20 +99,22 @@ const TutorSignup = () => {
         password,
         otp: otpString,
       });
-     
       dispatch(addTutor(response.data.tutorData)); 
       toast.success(response.data.message);
-      navigate("/tutor/dashboard");
+      navigate("/tutor");
       setIsOTPDialogOpen(false);
-      return toast.success(response.data.message);
     } catch (err) {
-      console.log(err);
-      
-      if (err.response && err.response.status === 404) {
-        return toast.error(err.response.data.message);
-      } else if (err.response && err.response.status === 401) {
-        return toast.error(err.response.data.message);
-      }
+      handleOtpError(err);
+    }
+  };
+
+  const handleOtpError = (err) => {
+    console.error(err);
+    if (err.response && err.response.status === 404) {
+      toast.error(err.response.data.message);
+    } else if (err.response && err.response.status === 401) {
+      toast.error(err.response.data.message);
+    } else {
       toast.error("An error occurred. Please try again.");
     }
   };

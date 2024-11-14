@@ -9,8 +9,8 @@ const adminSlice = createSlice({
         return storedData && storedData !== "undefined" ? JSON.parse(storedData) : null;
       } catch (error) {
         console.warn("Error parsing adminDatas from localStorage:", error);
-        localStorage.removeItem("adminDatas"); // Clear invalid data
-        return null; // Set to null if parsing fails
+        localStorage.removeItem("adminDatas"); 
+        return null;
       }
     })(),
   },

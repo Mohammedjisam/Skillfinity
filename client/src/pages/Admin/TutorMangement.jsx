@@ -8,6 +8,7 @@ import { logoutTutor } from '@/redux/slice/TutorSlice'
 import { useDispatch } from 'react-redux'
 import axiosInstance from '@/AxiosConfig'
 import { Input } from "@/components/ui/input"
+import Swal from 'sweetalert2'
 
 export default function TutorManagement() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -46,33 +47,77 @@ export default function TutorManagement() {
   const paginatedTutors = filteredTutors.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
 
   async function handleList(id) {
-    try {
-      const response = await axiosInstance.put(`/admin/listtutor/${id}`, { withCredentials: true }) 
-      setTutors(tutors.map((x) => {
-        if (x._id === id) {
-          return { ...x, isActive: true }
-        }
-        return x;
-      }));
-    } catch (error) {
-      console.error(error);
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You want to unblock this tutor?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, unblock!'
+    })
+
+    if (result.isConfirmed) {
+      try {
+        const response = await axiosInstance.put(`/admin/listtutor/${id}`, { withCredentials: true }) 
+        setTutors(tutors.map((x) => {
+          if (x._id === id) {
+            return { ...x, isActive: true }
+          }
+          return x;
+        }));
+        Swal.fire(
+          'Unblocked!',
+          'The tutor has been unblocked.',
+          'success'
+        )
+      } catch (error) {
+        console.error(error);
+        Swal.fire(
+          'Error',
+          'Failed to unblock the tutor.',
+          'error'
+        )
+      }
     }
   }
   
   async function handleUnlist(id) {
-    try {
-      const response = await axiosInstance.put(`/admin/unlisttutor/${id}`, { withCredentials: true })       
-      setTutors(tutors.map((x) => {
-        if (x._id === id) {
-          return { ...x, isActive: false }; 
-        }
-        if(x?.isActive === false) {
-          dispatch(logoutTutor())
-        }
-        return x;
-      }));  
-    } catch (error) {
-      console.error(error);
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You want to block this tutor?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, block!'
+    })
+
+    if (result.isConfirmed) {
+      try {
+        const response = await axiosInstance.put(`/admin/unlisttutor/${id}`, { withCredentials: true })       
+        setTutors(tutors.map((x) => {
+          if (x._id === id) {
+            return { ...x, isActive: false }; 
+          }
+          if(x?.isActive === false) {
+            dispatch(logoutTutor())
+          }
+          return x;
+        }));
+        Swal.fire(
+          'Blocked!',
+          'The tutor has been blocked.',
+          'success'
+        )
+      } catch (error) {
+        console.error(error);
+        Swal.fire(
+          'Error',
+          'Failed to block the tutor.',
+          'error'
+        )
+      }
     }
   }
 

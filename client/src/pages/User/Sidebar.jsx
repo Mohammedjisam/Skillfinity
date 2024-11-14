@@ -4,6 +4,34 @@ import { useNavigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { logoutUser } from '@/redux/slice/UserSlice'
 import { toast } from 'sonner'
+import Swal from 'sweetalert2'
+import axiosInstance from '@/AxiosConfig'
+
+const ConfirmationDialog = ({
+  title,
+  text,
+  icon,
+  confirmButtonText,
+  onConfirm
+}) => {
+  const showConfirmation = () => {
+    Swal.fire({
+      title,
+      text,
+      icon,
+      showCancelButton: true,
+      confirmButtonColor: "#3085d6",
+      cancelButtonColor: "#d33",
+      confirmButtonText
+    }).then((result) => {
+      if (result.isConfirmed) {
+        onConfirm();
+      }
+    });
+  };
+
+  return { showConfirmation };
+};
 
 const Sidebar = ({ isOpen, toggleSidebar, activeItem = 'Profile' }) => {
   const userData = useSelector((store) => store.user.userDatas)
@@ -15,11 +43,22 @@ const Sidebar = ({ isOpen, toggleSidebar, activeItem = 'Profile' }) => {
     toggleSidebar()
   }
 
+
   const handleLogout = () => {
-    dispatch(logoutUser())
-    navigate("/")
-    toggleSidebar()
-    toast.success('Logged out successfully!')
+    const { showConfirmation } = ConfirmationDialog({
+      title: "Logout Confirmation",
+      text: "Are you sure you want to log out?",
+      icon: "warning",
+      confirmButtonText: "Yes, log out",
+      onConfirm: () => {
+        dispatch(logoutUser())
+        navigate("/")
+        toggleSidebar()
+        toast.success('Logged out successfully!')
+      }
+    });
+
+    showConfirmation();
   }
 
   const menuItems = [

@@ -7,8 +7,70 @@ const otpSchema = require('../model/otpStore');
 const otpGenerator = require("otp-generator");
 const crypto = require('crypto');
 const { mailSender, otpEmailTemplate } = require('../utils/nodeMailer');
-const cloudinary = require('../config/cloudinaryConfig');
+const genarateAccesTocken = require("../utils/genarateAccesTocken");
+const genarateRefreshTocken = require("../utils/genarateRefreshTocken");
 
+
+
+const sendOtp = async (req, res) => {
+    const { email } = req.body;
+    try {
+        const existingUser = await User.findOne({ email });
+        if (existingUser) return res.status(409).json({ success: false, message: "E-mail already exists" });
+
+        const otp = otpGenerator.generate(5, { upperCaseAlphabets: false, lowerCaseAlphabets: false, specialChars: false });
+        await otpSchema.create({ email, otp });
+
+        const { subject, htmlContent } = otpEmailTemplate(otp);
+        await mailSender(email, subject, htmlContent);
+
+        res.status(200).json({ success: true, message: "OTP sent successfully", otp });
+    } catch (error) {
+        console.error("Error in sendOtp:", error);
+        res.status(500).json({ success: false, message: "Server error" });
+    }
+};
+
+const securePassword = async (password) => bcrypt.hash(password, 10);
+
+const signUp = async (req, res) => {
+    try {
+        const { name, password, email, phone } = req.body;
+        const userExists = await User.findOne({ email });
+        if (userExists) return res.status(409).json({ message: "User already exists" });
+
+        const userId = await generateUniqueUserId();
+        const passwordHash = await securePassword(password);
+        const newUser = await User.create({
+            name, password: passwordHash, email, phone, role: "student", user_id: userId
+        });
+        res.status(200).json({ message: "User is registered", userData: newUser });
+    } catch (error) {
+        console.error("Error in signUp:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
+
+const login = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await User.findOne({ email });
+
+        if (!user) return res.status(401).json({ message: "Invalid email or password" });
+        if (user.isActive === false) return res.status(403).json({ message: "Your account is blocked. Contact support." });
+
+        if (await bcrypt.compare(password, user.password)) {
+            genarateAccesTocken(res,user._id)
+            genarateRefreshTocken(res,user._id)
+            res.status(200).json({ message: "Login successful", userData: user });
+        } else {
+            res.status(401).json({ message: "Invalid email or password" });
+        }
+    } catch (error) {
+        console.error("Error in login:", error);
+        res.status(500).json({ message: "Server error" });
+    }
+};
 
 const passwordResetTemplate = (resetURL) => {
     return {
@@ -76,73 +138,6 @@ const resetPassword = async (req, res) => {
     }
 };
 
-const sendOtp = async (req, res) => {
-    const { email } = req.body;
-    try {
-        const existingUser = await User.findOne({ email });
-        if (existingUser) return res.status(409).json({ success: false, message: "E-mail already exists" });
-
-        const otp = otpGenerator.generate(5, { upperCaseAlphabets: false, lowerCaseAlphabets: false, specialChars: false });
-        await otpSchema.create({ email, otp });
-
-        const { subject, htmlContent } = otpEmailTemplate(otp);
-        await mailSender(email, subject, htmlContent);
-
-        res.status(200).json({ success: true, message: "OTP sent successfully", otp });
-    } catch (error) {
-        console.error("Error in sendOtp:", error);
-        res.status(500).json({ success: false, message: "Server error" });
-    }
-};
-
-const securePassword = async (password) => bcrypt.hash(password, 10);
-
-const signUp = async (req, res) => {
-    try {
-        const { name, password, email, phone } = req.body;
-        const userExists = await User.findOne({ email });
-        if (userExists) return res.status(409).json({ message: "User already exists" });
-
-        const userId = await generateUniqueUserId();
-        const passwordHash = await securePassword(password);
-        const newUser = await User.create({
-            name, password: passwordHash, email, phone, role: "student", user_id: userId
-        });
-        res.status(200).json({ message: "User is registered", userData: newUser });
-    } catch (error) {
-        console.error("Error in signUp:", error);
-        res.status(500).json({ message: "Server error", error: error.message });
-    }
-};
-
-const login = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
-
-        if (!user) return res.status(401).json({ message: "Invalid email or password" });
-        if (user.isActive === false) return res.status(403).json({ message: "Your account is blocked. Contact support." });
-
-        if (await bcrypt.compare(password, user.password)) {
-            const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: "30d" });
-
-            res.cookie("token", token, {
-                httpOnly: true,
-                maxAge: 30 * 24 * 60 * 60 * 1000,
-                secure: process.env.NODE_ENV === 'production',
-                sameSite: 'Lax',
-            });
-
-            res.status(200).json({ message: "Login successful", userData: user });
-        } else {
-            res.status(401).json({ message: "Invalid email or password" });
-        }
-    } catch (error) {
-        console.error("Error in login:", error);
-        res.status(500).json({ message: "Server error" });
-    }
-};
-
 
 const updateUser = async (req, res) => {
     try {
@@ -173,11 +168,8 @@ const updateUser = async (req, res) => {
     }
 };
 const logoutUser = (req, res) => {
-    res.clearCookie('token', {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Lax',
-    });
+    res.clearCookie('refreshToken');
+    res.clearCookie('accessToken')
     res.status(200).json({ message: 'Logged out successfully' });
 };
 

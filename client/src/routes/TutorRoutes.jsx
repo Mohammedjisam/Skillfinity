@@ -12,24 +12,21 @@ import ProtectedTutorLogin from '@/private/tutor/ProtectedTutorLogin'
 import ProtectedTutorRoutes from '@/private/tutor/ProtectedTutorRoutes'
 import AddCourse from '@/components/Courses/Tutor/AddCourse'
 import AddLesson from '@/components/Courses/Tutor/AddLesson'
-import MyCourses from '../pages/Tutor/MyCourses'
 import EditCourse from '@/components/Courses/Tutor/EditCourse'
 import EditLesson from '@/components/Courses/Tutor/EditLesson'
+import MyCourses from '@/components/Courses/Tutor/MyCourse'
 
 function TutorRoutes() {
   return (
     <div>
     <Header/>
       <Routes>
-
-        <Route path='*' element={<ProtectedTutorLogin>
-          <TutorLogin/>
-        </ProtectedTutorLogin>}/>
+        <Route path='*' element={<ProtectedTutorLogin><TutorLogin/></ProtectedTutorLogin>}/>
         <Route path='signup' element={<ProtectedTutorLogin><TutorSignup/></ProtectedTutorLogin>}/>
         <Route path="forgot-password" element={<TutorForgot/>}/>
         <Route path='reset-password/:token' element={<TutorReset/>}/>
         <Route path='otp' element={<Otp />}/>
-        <Route path='dashboard' element={<Dashboard/>}/>
+        <Route path='dashboard' element={<ProtectedTutorRoutes><Dashboard/></ProtectedTutorRoutes>}/>
         <Route path='profile' element={<ProtectedTutorRoutes><TutorProfile/></ProtectedTutorRoutes>}/>
         <Route path='addcourse' element={<ProtectedTutorRoutes><AddCourse/></ProtectedTutorRoutes>}/>
         <Route path='addlesson/:id'element={<ProtectedTutorRoutes><AddLesson/></ProtectedTutorRoutes>}/>

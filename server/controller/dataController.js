@@ -17,7 +17,7 @@ const viewAllCourse = async (req, res) => {
 const viewCourse = async (req, res) => {
     try {
       const courseId = req.params.courseId;
-      console.log("courseId received:", courseId); // Check courseId
+      console.log("courseId received:", courseId);
   
       const course = await Course.findById(courseId)
         .populate('tutor')
@@ -28,7 +28,7 @@ const viewCourse = async (req, res) => {
         return res.status(404).json({ message: "Course not found" });
       }
   
-      console.log("Course data:", course); // Check course data before sending
+      console.log("Course data:", course);
       res.status(200).json({ course });
     } catch (error) {
       console.error("Error in viewCourse:", error);
@@ -51,21 +51,23 @@ const viewCourse = async (req, res) => {
   const addCart = async (req, res) => {
     try {
       const courseId = req.params.courseId;
-      const userId = req.user?._id; // Retrieve user ID
+      console.log("dvidnvij",courseId)
+     const {userId} = req.body
+
+      console.log("jvifjbijbibjububu",userId)
   
-      // Check if user is logged in
+     
       if (!userId) {
         return res.status(400).json({ message: "User ID is required" });
       }
       console.log("User ID:", userId, "Course ID:", courseId);
   
-      // Check if the course exists
+     
       const course = await Course.findById(courseId);
       if (!course) {
         return res.status(404).json({ message: "Course not found" });
       }
   
-      // Fetch user's cart or create a new one if it doesn't exist
       let cart = await Cart.findOne({ userId });
       if (!cart) {
         cart = new Cart({
@@ -74,7 +76,6 @@ const viewCourse = async (req, res) => {
           totalCartPrice: course.price,
         });
       } else {
-        // Check if course already exists in the cart
         const itemIndex = cart.items.findIndex(item => item.courseId.equals(courseId));
         if (itemIndex === -1) {
           cart.items.push({ courseId, price: course.price });
@@ -82,11 +83,10 @@ const viewCourse = async (req, res) => {
           cart.items[itemIndex].price = course.price;
         }
   
-        // Recalculate the total price
         cart.totalCartPrice = cart.items.reduce((total, item) => total + item.price, 0);
       }
   
-      await cart.save(); // Save cart updates
+      await cart.save(); 
       res.status(200).json({ message: "Course added to cart successfully!", cart });
     } catch (error) {
       console.error("Error in addCart:", error);
@@ -96,13 +96,14 @@ const viewCourse = async (req, res) => {
 
 const viewCart = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const {userId} = req.body
+     
+      console.log("jvifjbijbibjububu",userId)
 
-    // Find the user's cart and populate course details with the correct model name
     const cart = await Cart.findOne({ userId }).populate({
       path: 'items.courseId',
-      model: 'courses', // Correct model name as defined in CourseSchema
-      select: 'coursetitle thumbnail price', // Customize fields as needed
+      model: 'courses', 
+      select: 'coursetitle thumbnail price', 
     });
 
     if (!cart) {
@@ -118,35 +119,28 @@ const viewCart = async (req, res) => {
 
 const removeCart = async (req, res) => {
   try {
-    const courseId = req.params.courseId;
-    const userId = req.user._id;
+    const {userId,courseId} = req.query;
+    console.log("jvifjbijbibjububu",userId)
 
-    // Find the user's cart
     const cart = await Cart.findOne({ userId });
     if (!cart) {
       return res.status(404).json({ message: "Cart not found" });
     }
 
-    // Find the index of the course to remove
     const itemIndex = cart.items.findIndex(item => item.courseId.equals(courseId));
     if (itemIndex === -1) {
       return res.status(404).json({ message: "Course not found in cart" });
     }
 
-    // Remove the course from items array
     cart.items.splice(itemIndex, 1);
 
-    // Check if the cart is empty after removal
     if (cart.items.length === 0) {
-      // If the cart is empty, remove the cart document from the database
       await Cart.findByIdAndDelete(cart._id);
       return res.status(200).json({ message: "Cart is empty and has been removed" });
     }
 
-    // Recalculate the total price after removal
     cart.totalCartPrice = cart.items.reduce((total, item) => total + item.price, 0);
 
-    // Save the updated cart
     await cart.save();
 
     res.status(200).json({ message: "Course removed from cart", cart });
@@ -158,11 +152,10 @@ const removeCart = async (req, res) => {
 
 const viewAllCategory = async (req, res) => {
   try {
-    // Fetch all categories, optionally populate courses if needed
     const categories = await Category.find().populate({
       path: 'courses',
-      model: 'courses', // Ensure the model name matches what's defined in your Course schema
-      select: 'coursetitle price thumbnail', // Customize fields if needed
+      model: 'courses', 
+      select: 'coursetitle price thumbnail', 
     });
 
     res.status(200).json({ categories });
@@ -177,16 +170,15 @@ const viewCategory = async (req, res) => {
     const categoryId = req.params.categoryId;
     console.log("categoryId received:", categoryId);
 
-    // Populate courses and their respective tutors
     const category = await Category.findById(categoryId)
       .populate({
         path: 'courses',
         model: 'courses',
-        select: 'coursetitle price thumbnail difficulty tutor', // Ensure 'tutor' field is included here
+        select: 'coursetitle price thumbnail difficulty tutor', 
         populate: {
           path: 'tutor',
           model: 'user',
-          select: 'name profileImage', // Populate tutor details
+          select: 'name profileImage', 
         },
       });
 
@@ -204,7 +196,6 @@ const viewCategory = async (req, res) => {
 
 const viewAllTutors = async (req, res) => {
   try {
-    // Fetch all users with the role of 'tutor'
     const tutors = await User.find({ role: 'tutor' })
 
     if (!tutors || tutors.length === 0) {
@@ -222,20 +213,18 @@ const viewTutor = async (req, res) => {
   try {
     const tutorId = req.params.id;
 
-    // Find the tutor and populate their profile details
     const tutor = await User.findById(tutorId).select('name profileImage email role');
     if (!tutor || tutor.role !== 'tutor') {
       return res.status(404).json({ message: "Tutor not found" });
     }
 
-    // Find courses taught by the tutor and populate their categories
     const courses = await Course.find({ tutor: tutorId })
       .populate({
         path: 'category',
-        model: 'categories', // Ensure this matches your Category model's name
+        model: 'categories',
         select: 'title',
       })
-      .select('coursetitle thumbnail price category'); // Select fields to show for courses
+      .select('coursetitle thumbnail price category');
 
     res.status(200).json({
       tutor,
@@ -251,18 +240,16 @@ const viewLessons = async (req, res) => {
   try {
     const courseId = req.params.courseId;
     
-    // Find the course and populate lessons associated with it
     const course = await Course.findById(courseId).populate({
       path: 'lessons',
-      model: 'lessons', // Ensure this matches your Lesson model name
-      select: 'lessontitle description Video pdfnotes duration', // Customize fields as needed
+      model: 'lessons', 
+      select: 'lessontitle description Video pdfnotes duration',
     });
 
     if (!course) {
       return res.status(404).json({ message: "Course not found" });
     }
 
-    // Return the lessons under the course
     res.status(200).json({ lessons: course.lessons });
   } catch (error) {
     console.error("Error in viewLessons:", error);
@@ -272,24 +259,21 @@ const viewLessons = async (req, res) => {
 
 const viewMyCoursesAsTutor = async (req, res) => {
   try {
-    const userId = req.user._id; // Assumes req.user._id contains the logged-in tutor's ID
+    const userId = req.user._id; 
 
-    // Check if the user is a tutor
     const user = await User.findById(userId);
     if (!user || user.role !== 'tutor') {
       return res.status(403).json({ message: "Access denied: Only tutors can view their courses" });
     }
 
-    // Find courses where the tutor matches the logged-in tutor's ID
     const courses = await Course.find({ tutor: userId })
       .populate({
         path: 'category',
-        model: 'categories', // Match your Category model name here
-        select: 'title', // Select specific fields if needed
+        model: 'categories', 
+        select: 'title', 
       })
-      .select('coursetitle price thumbnail category'); // Customize course details fields if needed
+      .select('coursetitle price thumbnail category'); 
 
-    // If no courses found, return a not found message
     if (!courses || courses.length === 0) {
       return res.status(404).json({ message: "No courses found for this tutor" });
     }

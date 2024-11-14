@@ -9,8 +9,8 @@ const categorySlice = createSlice({
         return storedData ? JSON.parse(storedData) : [];
       } catch (error) {
         console.warn("Error parsing categoryData from localStorage:", error);
-        localStorage.removeItem("categoryDatas"); // Clear invalid data
-        return []; // Set to empty array if parsing fails
+        localStorage.removeItem("categoryDatas"); 
+        return []; 
       }
     })(),
   },

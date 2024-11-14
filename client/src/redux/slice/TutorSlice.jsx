@@ -9,8 +9,8 @@ const tutorSlice = createSlice({
         return storedData ? JSON.parse(storedData) : null;
       } catch (error) {
         console.warn("Error parsing tutorDatas from localStorage:", error);
-        localStorage.removeItem("tutorDatas"); // Clear invalid data
-        return null; // Set to null if parsing fails
+        localStorage.removeItem("tutorDatas"); 
+        return null;
       }
     })(),
   },

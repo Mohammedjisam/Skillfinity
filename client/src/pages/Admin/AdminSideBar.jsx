@@ -1,9 +1,10 @@
-import  { useState } from 'react';
+import { useState } from 'react';
 import { Home, List, Users, ShoppingCart, UserCheck, BookOpen, LogOut, PlusCircle, X } from 'lucide-react';
 import { logoutAdmin } from '../../redux/slice/AdminSlice';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { toast } from 'sonner';
+import ConfirmationDialog from '../../components/common/ConfirmationDialog'
 
 const AdminSidebar = ({ initialActiveItem = 'Dashboard', isOpen, onClose }) => {
   const [activeItem, setActiveItem] = useState(initialActiveItem);
@@ -16,11 +17,21 @@ const AdminSidebar = ({ initialActiveItem = 'Dashboard', isOpen, onClose }) => {
     if (onClose) onClose();
   };
 
+  const { showConfirmation } = ConfirmationDialog({
+    title: "Are you sure?",
+    text: "You will be logged out of the admin panel.",
+    icon: "warning",
+    confirmButtonText: "Yes, log out",
+    onConfirm: () => {
+      dispatch(logoutAdmin());
+      toast.success('Logged out successfully!');
+      navigate("/admin");
+      if (onClose) onClose();
+    }
+  });
+
   const handleLogout = () => {
-    dispatch(logoutAdmin());
-    toast.success('Logged out successfully!');
-    navigate("/admin");
-    if (onClose) onClose();
+    showConfirmation();
   };
 
   const menuItems = [

@@ -8,6 +8,7 @@ import { useDispatch, useSelector } from 'react-redux'
 import { updateCategory, deleteCategory, setCategories } from '@/redux/slice/CategorySlice'
 import { toast } from 'sonner'
 import { Input } from "@/components/ui/input"
+import Swal from 'sweetalert2'
 
 export default function CategoryManagement() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -25,7 +26,6 @@ export default function CategoryManagement() {
       try {
         const response = await axiosInstance.get('/admin/categories', { withCredentials: true })
         setIsLoading(false)
-        console.log(response.data.categories)
         dispatch(setCategories(response.data))
       } catch (error) {
         console.error('Error fetching categories:', error)
@@ -41,9 +41,9 @@ export default function CategoryManagement() {
   }
 
   const filteredCategories = categories.filter(category => 
-    category.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    category.description.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+    category?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    category?.description?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const paginatedCategories = filteredCategories.slice(
     (currentPage - 1) * itemsPerPage,
@@ -82,16 +82,32 @@ export default function CategoryManagement() {
 
   const handleDelete = async (_id) => {
     try {
-      await axiosInstance.delete(`/admin/category/${_id}`, { withCredentials: true })
-      dispatch(deleteCategory(_id))
-      
-      const updatedCategories = categories.filter(cat => cat._id !== _id)
-      dispatch(setCategories(updatedCategories))
-      
-      toast.success('Category deleted successfully')
+      const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!'
+      });
+
+      if (result.isConfirmed) {
+        await axiosInstance.delete(`/admin/category/${_id}`, { withCredentials: true });
+        dispatch(deleteCategory(_id));
+        
+        const updatedCategories = categories.filter(cat => cat._id !== _id);
+        dispatch(setCategories(updatedCategories));
+        
+        Swal.fire(
+          'Deleted!',
+          'Your category has been deleted.',
+          'success'
+        );
+      }
     } catch (error) {
-      console.error('Error deleting category:', error)
-      toast.error('Failed to delete category')
+      console.error('Error deleting category:', error);
+      toast.error('Failed to delete category');
     }
   }
 

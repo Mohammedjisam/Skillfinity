@@ -1,7 +1,8 @@
 const express = require("express")
 const adminRoute = express.Router()
 const { adminLogin,logoutAdmin,forgotPassword,resetPassword,students,tutors,listUser,unlistUser,unlisTtutor,lisTtutor,getCategories,updateCategory,deleteCategory,addCategory} = require("../../controller/adminController")
-const {verifyAdmin}=require('../../middleware/verifyAdmin')
+const verifyUser = require('../../middleware/authMiddleware')
+
 
 adminRoute.post('/login',adminLogin)
 adminRoute.post('/forgot', forgotPassword);
@@ -12,10 +13,10 @@ adminRoute.put("/unlistuser/:id",unlistUser)
 adminRoute.put("/listtutor/:id",lisTtutor)
 adminRoute.put("/unlisttutor/:id",unlisTtutor)
 adminRoute.get('/tutors',tutors)
-adminRoute.post("/logout",verifyAdmin,logoutAdmin)
-adminRoute.post('/addcategory', verifyAdmin, addCategory)
-adminRoute.get('/categories', verifyAdmin, getCategories)
-adminRoute.put('/category/:id', verifyAdmin, updateCategory)
-adminRoute.delete('/category/:id', verifyAdmin, deleteCategory)
+adminRoute.post("/logout",logoutAdmin)
+adminRoute.post('/addcategory', addCategory)
+adminRoute.get('/categories', getCategories)
+adminRoute.put('/category/:id', updateCategory)
+adminRoute.delete('/category/:id', deleteCategory)
 
 module.exports = adminRoute

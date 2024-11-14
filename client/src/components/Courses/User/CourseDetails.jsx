@@ -4,11 +4,15 @@ import { MonitorPlay, Heart, ShoppingCart, Clock, BarChart, Calendar, User, Book
 import axiosInstance from '../../../AxiosConfig'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { toast } from 'sonner'
+import { useSelector } from 'react-redux';
 
 export default function CourseDetails() {
   const [courseData, setCourseData] = useState(null)
   const [loading, setLoading] = useState(true)
   const { courseId } = useParams()
+  const userDatas = useSelector((store) => store.user.userDatas);
+  console.log("userId",userDatas._id)
 
   useEffect(() => {
     const fetchCourse = async () => {
@@ -18,6 +22,7 @@ export default function CourseDetails() {
         console.log("Fetched course data:", response.data.course)
       } catch (error) {
         console.error("Error fetching course details:", error)
+        toast.error("Failed to load course details.") 
         if (error.response) {
           console.error("Response data:", error.response.data)
         }
@@ -30,12 +35,12 @@ export default function CourseDetails() {
 
   const addToCart = async () => {
     try {
-      const response = await axiosInstance.post(`/user/data/addcart/${courseId}`)
-      alert("Course added to cart successfully!")
+      const response = await axiosInstance.post(`/user/data/addcart/${courseId}`,{userId: userDatas._id})
+      toast.success("Course added to cart successfully!")
       console.log("Cart response:", response.data)
     } catch (error) {
       console.error("Error adding to cart:", error)
-      alert("Failed to add course to cart.")
+      toast.error("Failed to add course to cart.") 
     }
   }
 

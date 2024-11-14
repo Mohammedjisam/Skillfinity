@@ -3,65 +3,123 @@ import { MonitorPlay, Edit2, Menu, Save, X, PlusCircle } from 'lucide-react'
 import SideBar from '../../../pages/Tutor/SideBar'
 import axiosInstance from '../../../AxiosConfig'
 import { useParams, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
+import Swal from 'sweetalert2'
+import { useSelector } from 'react-redux'
 
 export default function EditCourse() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [courseData, setCourseData] = useState(null)
   const [editingStructureIndex, setEditingStructureIndex] = useState(null)
   const [thumbnailFile, setThumbnailFile] = useState(null)
+  const [reload,setReload] = useState(false)
+  
+  const tuorDatas = useSelector((store) => store.tutor.tutorDatas);
   const { id } = useParams()
-  const navigate = useNavigate()  
+  const navigate = useNavigate()
 
   useEffect(() => {
+    if (!tuorDatas?._id) {
+      // Guard clause to handle undefined tutorId
+      toast.error('Tutor data is not available yet.')
+      return;
+    }
+
     const fetchCourseData = async () => {
       try {
-        const response = await axiosInstance.get(`/tutor/course/viewdata/${id}`)
-        setCourseData(response.data.course)
+        const response = await axiosInstance.post(`/tutor/course/viewdata/${id}`, { tutorId: tuorDatas._id });
+        setCourseData(response.data.course);
       } catch (error) {
-        console.error('Error fetching course data:', error)
+        toast.error('Error fetching course data');
+        console.error('Error fetching course data:', error);
       }
     }
-  
-    fetchCourseData()
-  }, [id])
+
+    fetchCourseData();
+    setReload(false)
+  }, [id, tuorDatas,reload]);
 
   const handleDeleteCourse = async () => {
     try {
-      await axiosInstance.delete(`/tutor/course/viewcourse/${id}`)
-      navigate('/courses')  // Redirect after deletion
+      const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this! All associated lessons will be deleted.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!'
+      });
+
+      if (result.isConfirmed) {
+        await axiosInstance.delete(`/tutor/course/viewcourse/`,{params:{
+          tutorId:tuorDatas._id,
+          courseId:id,
+        }});
+        Swal.fire(
+          'Deleted!',
+          'Your course has been deleted.',
+          'success'
+        );
+        toast.success('Course deleted successfully');
+        navigate('/tutor/mycourse');  
+      }
     } catch (error) {
-      console.error('Error deleting course:', error)
+      toast.error('Failed to delete course');
+      console.error('Error deleting course:', error);
     }
-  }
+  };
 
   const handleRemoveLesson = async (lessonId) => {
     try {
-      await axiosInstance.delete(`/tutor/course/editlesson/${lessonId}`)
-      // Refresh course data after deleting the lesson
-      const response = await axiosInstance.get(`/tutor/course/viewdata/${id}`)
-      setCourseData(response.data.course)
+      const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: "You won't be able to revert this!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, delete it!'
+      });
+
+      if (result.isConfirmed) {
+        await axiosInstance.delete(`/tutor/course/editlesson/`,{params:{
+          tutorId:tuorDatas._id,
+          lessonId,
+        }});
+        toast.success('Lesson removed successfully');
+        // const response = await axiosInstance.get(`/tutor/course/viewdata/${id}`);
+        // setCourseData(response.data.course);
+        setReload(true)
+        Swal.fire(
+          'Deleted!',
+          'Your lesson has been deleted.',
+          'success'
+        );
+      }
     } catch (error) {
-      console.error('Error deleting lesson:', error)
+      toast.error('Failed to remove lesson');
+      console.error('Error deleting lesson:', error);
     }
-  }
+  };
 
   const handleEditLesson = (lessonId) => {
-    navigate(`/tutor/editlesson/${lessonId}`)
-  }
+    navigate(`/tutor/editlesson/${lessonId}`);
+  };
 
   const handleAddLesson = () => {
-    navigate(`/tutor/addlesson/${id}`)
-  }
+    navigate(`/tutor/addlesson/${id}`);
+  };
 
   const handleSaveChanges = async () => {
     try {
-      let thumbnailUrl = courseData.thumbnail
+      let thumbnailUrl = courseData.thumbnail;
 
       if (thumbnailFile) {
-        const formData = new FormData()
-        formData.append('file', thumbnailFile)
-        formData.append('upload_preset', 'skillfinity_media')
-        formData.append('cloud_name', 'dwxnxuuht')
+        const formData = new FormData();
+        formData.append('file', thumbnailFile);
+        formData.append('upload_preset', 'skillfinity_media');
+        formData.append('cloud_name', 'dwxnxuuht');
 
         const cloudinaryResponse = await fetch(
           `https://api.cloudinary.com/v1_1/dwxnxuuht/image/upload`,
@@ -69,9 +127,9 @@ export default function EditCourse() {
             method: 'POST',
             body: formData
           }
-        )
-        const cloudinaryData = await cloudinaryResponse.json()
-        thumbnailUrl = cloudinaryData.secure_url
+        );
+        const cloudinaryData = await cloudinaryResponse.json();
+        thumbnailUrl = cloudinaryData.secure_url;
       }
 
       const updatedData = {
@@ -80,22 +138,25 @@ export default function EditCourse() {
         features: courseData.features,
         thumbnail: thumbnailUrl,
         courseStructure: courseData.courseStructure,
-      }
+        tutorId: tuorDatas._id  // Ensure tutorId is correct here
+      };
       
-      const response = await axiosInstance.put(`/tutor/course/editData/${id}`, updatedData)
-      console.log('Course updated successfully:', response.data)
-      navigate('/tutor/mycourse')  // Redirect after update
+      const response = await axiosInstance.put(`/tutor/course/editData/${id}`, updatedData);
+
+      toast.success('Course updated successfully');
+      navigate('/tutor/mycourse');  // Redirect after update
     } catch (error) {
-      console.error('Error updating course:', error)
+      toast.error('Failed to update course');
+      console.error('Error updating course:', error);
     }
-  }
+  };
 
   const handleInputChange = (field, value) => {
     setCourseData((prevData) => ({
       ...prevData,
       [field]: value,
     }))
-  }
+  };
 
   const handleStructureChange = (index, value) => {
     setCourseData((prevData) => ({
@@ -104,24 +165,25 @@ export default function EditCourse() {
         i === index ? value : item
       ),
     }))
-  }
+  };
 
   const handleEditStructure = (index) => {
     setEditingStructureIndex(index)
-  }
+  };
 
   const handleSaveStructure = () => {
     setEditingStructureIndex(null)
-  }
+  };
 
   const handleThumbnailChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
-      setThumbnailFile(e.target.files[0])
+      setThumbnailFile(e.target.files[0]);
+      toast.success('Thumbnail selected successfully');
     }
-  }
+  };
 
   if (!courseData) {
-    return <div>Loading...</div>
+    return <div>Loading...</div>;
   }
 
   return (

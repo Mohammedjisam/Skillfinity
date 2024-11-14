@@ -116,7 +116,7 @@ export default function Profile() {
                 <div className="flex flex-col items-center mb-10">
                   <div className="relative">
                     <img
-                      src={userData.profileImage || "/placeholder.svg?height=150&width=150"}
+                      src={userData.profileImage || "/tutoravatar.png?height=150&width=150"}
                       alt="Profile"
                       className="w-40 h-40 rounded-full object-cover border-4 border-white shadow-lg"
                     />

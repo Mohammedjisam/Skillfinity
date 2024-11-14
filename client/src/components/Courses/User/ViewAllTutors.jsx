@@ -3,6 +3,7 @@ import { User, ChevronLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../../AxiosConfig';
 import { Button } from "@/components/ui/button";
+import { toast } from 'sonner';
 
 export default function ViewAllTutors() {
   const [tutors, setTutors] = useState([]);
@@ -16,6 +17,7 @@ export default function ViewAllTutors() {
         setTutors(response.data.tutors);
       } catch (error) {
         console.error("Error fetching tutors:", error);
+        toast.error("Failed to load tutors.");
       } finally {
         setLoading(false);
       }
@@ -32,7 +34,7 @@ export default function ViewAllTutors() {
     <div className="bg-gradient-to-b from-gray-100 to-white min-h-screen">
       <div className="container mx-auto px-4 py-8">
         <header className="flex items-center mb-8">
-          <Button onClick={handleBackClick} variant="outline" className="mr-4">
+          <Button onClick={handleBackClick} variant="outline" className="mr-4 border-none">
             <ChevronLeft className="w-4 h-4" />
           </Button>
           <h1 className="text-4xl font-bold text-gray-800">Our Tutors</h1>

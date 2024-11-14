@@ -8,6 +8,7 @@ import { logoutUser } from '@/redux/slice/UserSlice'
 import { useDispatch } from 'react-redux'
 import axiosInstance from '@/AxiosConfig'
 import { Input } from "@/components/ui/input"
+import Swal from 'sweetalert2'
 
 export default function StudentManagement() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -48,28 +49,85 @@ export default function StudentManagement() {
     currentPage * itemsPerPage
   )
 
-  const handleToggleStatus = async (id, isActive) => {
-    try {
-      const response = await axiosInstance.put(`/admin/${isActive ? 'unlistuser' : 'listuser'}/${id}`, { withCredentials: true })
-      console.log(response)
-      
-      setStudents(students.map((student) => {
-        if (student._id === id) {
-          return { ...student, isActive: !isActive }
-        }
-        return student
-      }))
+  async function handleBlock(id) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You want to block this student?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, block!'
+    })
 
-      if (!isActive) {
+    if (result.isConfirmed) {
+      try {
+        await axiosInstance.put(`/admin/unlistuser/${id}`, { withCredentials: true })
+        setStudents(students.map((student) => {
+          if (student._id === id) {
+            return { ...student, isActive: false }
+          }
+          return student
+        }))
         dispatch(logoutUser())
+        Swal.fire(
+          'Blocked!',
+          'The student has been blocked.',
+          'success'
+        )
+      } catch (error) {
+        console.error('Error blocking student:', error)
+        Swal.fire(
+          'Error',
+          'Failed to block the student.',
+          'error'
+        )
       }
-    } catch (error) {
-      console.error(error)
+    }
+  }
+
+  async function handleUnblock(id) {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: "You want to unblock this student?",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, unblock!'
+    })
+
+    if (result.isConfirmed) {
+      try {
+        await axiosInstance.put(`/admin/listuser/${id}`, { withCredentials: true })
+        setStudents(students.map((student) => {
+          if (student._id === id) {
+            return { ...student, isActive: true }
+          }
+          return student
+        }))
+        Swal.fire(
+          'Unblocked!',
+          'The student has been unblocked.',
+          'success'
+        )
+      } catch (error) {
+        console.error('Error unblocking student:', error)
+        Swal.fire(
+          'Error',
+          'Failed to unblock the student.',
+          'error'
+        )
+      }
     }
   }
 
   if (isLoading) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500"></div>
+      </div>
+    )
   }
 
   return (
@@ -129,7 +187,7 @@ export default function StudentManagement() {
                         <td className="px-4 py-2 text-sm font-medium">
                           <button
                             className={`w-24 px-6 py-2 rounded-md text-white transition duration-300 ${student.isActive ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'}`}
-                            onClick={() => handleToggleStatus(student._id, student.isActive)}
+                            onClick={() => student.isActive ? handleBlock(student._id) : handleUnblock(student._id)}
                           >
                             {student.isActive ? 'Block' : 'Unblock'}
                           </button>

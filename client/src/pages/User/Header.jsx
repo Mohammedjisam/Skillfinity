@@ -61,7 +61,7 @@ const Header = () => {
                   <a href="/home" className="text-gray-700 hover:text-gray-900">Home</a>
                   <a href="/allcourse" className="text-gray-700 hover:text-gray-900">Courses</a>
                   <a href="#" className="text-gray-700 hover:text-gray-900">About Us</a>
-                  <a href="/tutors" className="text-gray-700 hover:text-gray-900">Tutors</a>
+                  <a href="/viewalltutors" className="text-gray-700 hover:text-gray-900">Tutors</a>
                   <a href="#" className="text-gray-700 hover:text-gray-900">Contact</a>
                 </nav>
                 <div className="hidden md:flex items-center space-x-4">

@@ -9,8 +9,8 @@ const userSlice = createSlice({
         return storedData ? JSON.parse(storedData) : null;
       } catch (error) {
         console.warn("Error parsing userDatas from localStorage:", error);
-        localStorage.removeItem("userDatas"); // Clear invalid data
-        return null; // Set to null if parsing fails
+        localStorage.removeItem("userDatas"); 
+        return null; 
       }
     })(),
   },
@@ -24,7 +24,6 @@ const userSlice = createSlice({
       localStorage.removeItem("userDatas");
     },
     updateUser: (state, action) => {
-      
       if (state.userDatas) {
         state.userDatas = { ...state.userDatas, ...action.payload };
         localStorage.setItem("userDatas", JSON.stringify(state.userDatas));

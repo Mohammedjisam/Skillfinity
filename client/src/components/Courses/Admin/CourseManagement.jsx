@@ -5,17 +5,13 @@ import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, ChevronRight, Menu, X, Search, SlidersHorizontal, Eye, EyeOff } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import axiosInstance from '../../../AxiosConfig'
 import AdminSidebar from '@/pages/Admin/AdminSideBar'
 import { toast } from 'sonner'
+import Swal from 'sweetalert2'
 
 export default function CourseManagement() {
   const navigate = useNavigate()
@@ -46,17 +42,21 @@ export default function CourseManagement() {
   }
 
   const getUniqueCategories = () => {
-    const categories = new Set(courses.map(course => course.category.title))
-    return ['All', ...Array.from(categories)]
+    const categories = new Set(
+      courses
+        .filter(course => course.category && course.category.title)
+        .map(course => course.category.title)
+    );
+    return ['All', ...Array.from(categories)];
   }
 
   const filteredCourses = courses.filter(course => {
     const matchesSearch = 
       course.coursetitle.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.category.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (course.category && course.category.title.toLowerCase().includes(searchTerm.toLowerCase())) ||
       course.tutor.name.toLowerCase().includes(searchTerm.toLowerCase())
     
-    const matchesCategory = categoryFilter === 'All' || course.category.title === categoryFilter
+    const matchesCategory = categoryFilter === 'All' || (course.category && course.category.title === categoryFilter)
     
     return matchesSearch && matchesCategory
   })
@@ -73,18 +73,40 @@ export default function CourseManagement() {
   }
 
   const handleToggleVisibility = async (id, isVisible) => {
-    try {
-      await axiosInstance.put(`/user/data/togglecoursevisibility/${id}`, { isVisible: !isVisible }, { withCredentials: true })
-      setCourses(courses.map((course) => {
-        if (course._id === id) {
-          return { ...course, isVisible: !isVisible }
-        }
-        return course
-      }))
-      toast.success(`Course ${isVisible ? 'hidden' : 'unhidden'} successfully`)
-    } catch (error) {
-      console.error('Error toggling course visibility:', error)
-      toast.error('Failed to toggle course visibility')
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: isVisible ? "This course will be hidden from students." : "This course will be visible to students.",
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: isVisible ? 'Yes, hide it!' : 'Yes, unhide it!'
+    })
+
+    if (result.isConfirmed) {
+      try {
+        await axiosInstance.put(`/user/data/togglecoursevisibility/${id}`, { isVisible: !isVisible }, { withCredentials: true })
+        setCourses(courses.map((course) => {
+          if (course._id === id) {
+            return { ...course, isVisible: !isVisible }
+          }
+          return course
+        }))
+        Swal.fire(
+          'Success!',
+          `Course ${isVisible ? 'hidden' : 'unhidden'} successfully`,
+          'success'
+        )
+        toast.success(`Course ${isVisible ? 'hidden' : 'unhidden'} successfully`)
+      } catch (error) {
+        console.error('Error toggling course visibility:', error)
+        Swal.fire(
+          'Error!',
+          'Failed to toggle course visibility',
+          'error'
+        )
+        toast.error('Failed to toggle course visibility')
+      }
     }
   }
 
@@ -177,7 +199,7 @@ export default function CourseManagement() {
                             {index + 1 + (currentPage - 1) * itemsPerPage}
                           </TableCell>
                           <TableCell className="font-medium text-gray-900">{course.coursetitle}</TableCell>
-                          <TableCell className="text-gray-600">{course.category.title}</TableCell>
+                          <TableCell className="text-gray-600">{course.category ? course.category.title : 'N/A'}</TableCell>
                           <TableCell className="text-gray-600">{course.tutor.name}</TableCell>
                           <TableCell className="text-center text-gray-600">{course.lessons.length}</TableCell>
                           <TableCell>
@@ -196,20 +218,9 @@ export default function CourseManagement() {
                                 handleToggleVisibility(course._id, course.isVisible)
                               }}
                               variant={course.isVisible ? 'destructive' : 'outline'}
-                              size="sm"
-                              className="text-xs border-none bg-gray-50"
+                              size="icon"
                             >
-                              {course.isVisible ? (
-                                <>
-                                  <EyeOff size={14} className="mr-1" />
-                                  Hide
-                                </>
-                              ) : (
-                                <>
-                                  <Eye size={14} className="mr-1" />
-                                  Unhide
-                                </>
-                              )}
+                              {course.isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -219,39 +230,27 @@ export default function CourseManagement() {
                 </Table>
               </div>
 
-              {totalPages > 1 && (
-                <div className="flex justify-center items-center mt-4 space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-none bg-gray-200"
-                    onClick={() => handlePageChange(currentPage - 1)}
-                    disabled={currentPage === 1}
-                  >
-                    <ChevronLeft className="h-4 w-4 " />
-                  </Button>
-                  {[...Array(totalPages)].map((_, index) => (
-                    <Button
-                      key={index}
-                      variant={currentPage === index + 1 ? "default" : "outline"}
-                      size="sm"
-                      
-                      onClick={() => handlePageChange(index + 1)}
-                    >
-                      {index + 1}
-                    </Button>
-                  ))}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="border-none bg-gray-200"
-                    onClick={() => handlePageChange(currentPage + 1)}
-                    disabled={currentPage === totalPages}
-                  >
-                    <ChevronRight className="h-4 w-4" />
-                  </Button>
-                </div>
-              )}
+              <div className="flex justify-between items-center mt-6">
+                <Button
+                  variant="ghost"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="mr-2 h-4 w-4" />
+                  Previous
+                </Button>
+                <p className="text-sm text-gray-600">
+                  Page {currentPage} of {totalPages}
+                </p>
+                <Button
+                  variant="ghost"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </main>

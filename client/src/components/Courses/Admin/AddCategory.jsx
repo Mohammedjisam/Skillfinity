@@ -5,12 +5,11 @@ import axiosInstance from '@/AxiosConfig'
 import 'react-toastify/dist/ReactToastify.css'
 import { toast } from 'sonner'
 import { addCategory } from '@/redux/slice/CategorySlice'
-import { useDispatch, useSelector } from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { Menu, X } from 'lucide-react'
 
 export default function AddCategory() {
   const dispatch = useDispatch()
-  const categoryData = useSelector((store) => store.category.categoryDatas)
   const navigate = useNavigate()
   const [formData, setFormData] = useState({
     title: '',

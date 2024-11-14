@@ -1,80 +1,96 @@
-import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { Save, ArrowLeft, Upload, Menu } from 'lucide-react'
-import axiosInstance from '../../../AxiosConfig'
-import SideBar from '../../../pages/Tutor/SideBar'
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Save, ArrowLeft, Upload, Menu } from 'lucide-react';
+import axiosInstance from '../../../AxiosConfig';
+import SideBar from '../../../pages/Tutor/SideBar';
+import { toast } from 'sonner'; // Import toast
+import { useSelector } from 'react-redux'; // Import useSelector
 
 export default function EditLesson() {
-  const [lessonData, setLessonData] = useState(null)
-  const [videoFile, setVideoFile] = useState(null)
-  const [pdfFile, setPdfFile] = useState(null)
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const { lessonId } = useParams()
-  const navigate = useNavigate()
+  const [lessonData, setLessonData] = useState(null);
+  const [videoFile, setVideoFile] = useState(null);
+  const [pdfFile, setPdfFile] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const tutorData = useSelector((store) => store.tutor.tutorDatas);
+  const { lessonId } = useParams();
+  const navigate = useNavigate();
+  const tutorDatas=useSelector((store)=>store.tutor.tutorDatas)
 
   useEffect(() => {
     const fetchLessonData = async () => {
       try {
-        const response = await axiosInstance.get(`/tutor/course/editlesson/${lessonId}`)
-        setLessonData(response.data.lesson)
+        // Make API call to get lesson data
+        const response = await axiosInstance.get(`/tutor/course/editlesson`,{params:{
+          lessonId,
+          tutorId:tutorDatas._id,
+        }});
+        
+        if (response.data && response.data.lesson) {
+          setLessonData(response.data.lesson); // Update state with fetched data
+        }
       } catch (error) {
-        console.error('Error fetching lesson data:', error)
+        console.error('Error fetching lesson data:', error);
+        toast.error('Failed to fetch lesson data');
       }
+    };
+  
+    if (lessonId) {
+      fetchLessonData(); // Fetch data when lessonId changes
     }
-
-    fetchLessonData()
-  }, [lessonId])
+  }, [lessonId]); // Re-fetch when lessonId changes
+  
 
   const handleInputChange = (field, value) => {
-    setLessonData(prevData => ({
+    setLessonData((prevData) => ({
       ...prevData,
-      [field]: value
-    }))
-  }
+      [field]: value,
+    }));
+  };
 
   const handleFileChange = (event, fileType) => {
-    const file = event.target.files[0]
+    const file = event.target.files[0];
     if (fileType === 'video') {
-      setVideoFile(file)
+      setVideoFile(file);
     } else if (fileType === 'pdf') {
-      setPdfFile(file)
+      setPdfFile(file);
     }
-  }
+  };
 
   const uploadToCloudinary = async (file, resourceType) => {
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('upload_preset', 'skillfinity_media')
-    formData.append('cloud_name', 'dwxnxuuht')
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', 'skillfinity_media');
+    formData.append('cloud_name', 'dwxnxuuht');
 
     try {
       const response = await fetch(
         `https://api.cloudinary.com/v1_1/dwxnxuuht/${resourceType}/upload`,
         {
           method: 'POST',
-          body: formData
+          body: formData,
         }
-      )
-      const data = await response.json()
-      return data.secure_url
+      );
+      const data = await response.json();
+      return data.secure_url;
     } catch (error) {
-      console.error(`Error uploading ${resourceType} to Cloudinary:`, error)
-      throw error
+      console.error(`Error uploading ${resourceType} to Cloudinary:`, error);
+      toast.error(`Failed to upload ${resourceType} file`); // Error toast for file upload
+      throw error;
     }
-  }
+  };
 
   const handleSaveLesson = async () => {
     try {
-      let updatedData = { ...lessonData }
+      let updatedData = { ...lessonData };
 
       if (videoFile) {
-        const videoUrl = await uploadToCloudinary(videoFile, 'video')
-        updatedData.Video = videoUrl
+        const videoUrl = await uploadToCloudinary(videoFile, 'video');
+        updatedData.Video = videoUrl;
       }
 
       if (pdfFile) {
-        const pdfUrl = await uploadToCloudinary(pdfFile, 'raw')
-        updatedData.pdfnotes = pdfUrl
+        const pdfUrl = await uploadToCloudinary(pdfFile, 'raw');
+        updatedData.pdfnotes = pdfUrl;
       }
 
       const dataToSend = {
@@ -82,21 +98,27 @@ export default function EditLesson() {
         duration: updatedData.duration,
         videoUrl: updatedData.Video,
         pdfUrl: updatedData.pdfnotes,
-        description: updatedData.description
-      }
+        description: updatedData.description,
+        tutorId: tutorData._id,
+      };
 
-      const response = await axiosInstance.put(`/tutor/course/editlesson/${lessonId}`, dataToSend)
-      console.log('Lesson updated:', response.data)
-      navigate(`/tutor/editcourse/${lessonData.course}`)
+      const response = await axiosInstance.put('/tutor/course/editlesson',{
+        lessonId,
+        tutorId:tutorDatas._id,
+        ...dataToSend
+      });
+      console.log('Lesson updated:', response.data);
+      toast.success('Lesson updated successfully'); // Success toast for lesson update
+      navigate(`/tutor/editcourse/${lessonData.course}`);
     } catch (error) {
-      console.error('Error updating lesson:', error)
+      console.error('Error updating lesson:', error);
+      toast.error('Failed to update lesson'); // Error toast for lesson update
     }
-  }
+  };
 
   if (!lessonData) {
-    return <div className="flex justify-center items-center h-screen">Loading...</div>
+    return <div className="flex justify-center items-center h-screen">Loading...</div>;
   }
-
   return (
     <div className="flex h-screen bg-gray-100">
       <SideBar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} activeItem="Courses" />

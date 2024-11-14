@@ -3,7 +3,7 @@ import { Pencil, Menu, Camera } from 'lucide-react';
 import TutorSidebar from './SideBar';
 import { useSelector, useDispatch } from 'react-redux';
 import { toast } from 'sonner';
-import { updateTutor } from '@/redux/slice/TutorSlice';
+import { updateTutor, addTutor } from '@/redux/slice/TutorSlice'; // Use addTutor instead of setTutorData
 import axiosInstance from '@/AxiosConfig';
 
 export default function TutorProfile() {
@@ -24,6 +24,19 @@ export default function TutorProfile() {
 
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    const fetchTutorData = async () => {
+      try {
+        const response = await axiosInstance.get('/tutor/profile');
+        dispatch(addTutor(response.data.tutor)); // Dispatch addTutor instead of setTutorData
+      } catch (error) {
+        console.error("Error fetching tutor profile:", error);
+      }
+    };
+
+    fetchTutorData();
+  }, [dispatch]);
 
   const toggleSidebar = () => {
     if (window.innerWidth < 1024) {
